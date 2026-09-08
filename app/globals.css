@@ -1,0 +1,7 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #FAF0E6;
+  -webkit-font-smoothing: antialiased;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
