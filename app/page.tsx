@@ -31,7 +31,7 @@ const MERITS = [
 ];
 
 export default function GoEatApp() {
-  const [screen, setScreen] = useState<"setup"|"loading"|"results">("setup");
+  const [screen, setScreen] = useState<"splash"|"setup"|"loading"|"results">("splash");
   const [country, setCountry] = useState("CA");
   const [family, setFamily] = useState(4);
   const [budget, setBudget] = useState("");
@@ -63,11 +63,18 @@ export default function GoEatApp() {
   const [familyProfiles, setFamilyProfiles] = useState<any[]>([]);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
+  const [mealPhotos, setMealPhotos] = useState<Record<string,string>>({});
   const fridgeRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLInputElement>(null);
 
   const sym = country === "CA" ? "CA$" : "$";
   const stores = country === "CA" ? CA_STORES : US_STORES;
+
+  // Splash screen auto-advance
+  useEffect(() => {
+    const t = setTimeout(() => setScreen("setup"), 2800);
+    return () => clearTimeout(t);
+  }, []);
 
   // Load saved plans on mount
   useEffect(() => {
@@ -258,6 +265,31 @@ export default function GoEatApp() {
     setCravingLoading(false);
   }
 
+  async function fetchMealPhoto(mealName: string): Promise<string> {
+    if (mealPhotos[mealName]) return mealPhotos[mealName];
+    try {
+      const query = encodeURIComponent(mealName + " food dish");
+      const res = await fetch(
+        `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`,
+        { headers: { Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_KEY || "demo"}` } }
+      );
+      const data = await res.json();
+      const url = data.results?.[0]?.urls?.small || "";
+      if (url) setMealPhotos(p => ({ ...p, [mealName]: url }));
+      return url;
+    } catch { return ""; }
+  }
+
+  // Prefetch photos when result loads
+  useEffect(() => {
+    if (!result?.mealPlan) return;
+    result.mealPlan.forEach((day: any) => {
+      day.meals?.forEach((m: any) => {
+        fetchMealPhoto(m.name);
+      });
+    });
+  }, [result]);
+
   const totalItems = result?.shoppingList?.flatMap((c: any) => c.items).length || 0;
   const checkedCount = Object.values(checked).filter(Boolean).length;
 
@@ -270,6 +302,67 @@ export default function GoEatApp() {
 
   return (
     <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: "#FFFFFF", boxShadow: "0 0 40px rgba(0,0,0,0.08)", fontFamily: "'Nunito Sans', sans-serif" }}>
+
+      {/* SPLASH SCREEN */}
+      {screen === "splash" && (
+        <div style={{
+          position: "fixed", inset: 0, background: "white", zIndex: 1000,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          animation: "fadeIn 0.5s ease",
+        }}>
+          {/* Logo mark */}
+          <div style={{
+            width: 120, height: 120, borderRadius: 32,
+            background: "linear-gradient(135deg,#E8F5E9,#C8E6C9)",
+            border: "3px solid #C8E6C9",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 64, marginBottom: 24,
+            boxShadow: "0 8px 32px rgba(26,92,46,0.15)",
+            animation: "popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s both"
+          }}>🛒</div>
+
+          {/* Logo text */}
+          <div style={{
+            fontFamily: "'Nunito', sans-serif", fontWeight: 900, fontSize: 48, lineHeight: 1,
+            animation: "fadeUp 0.6s ease 0.5s both"
+          }}>
+            <span style={{ color: "#1A5C2E" }}>Go</span>
+            <span style={{ color: "#F97316" }}>Eat</span>
+            <span style={{
+              fontSize: 16, background: "#4CAF50", color: "white",
+              fontWeight: 800, padding: "3px 8px", borderRadius: 8,
+              marginLeft: 6, verticalAlign: "middle"
+            }}>AI</span>
+          </div>
+
+          {/* Tagline */}
+          <div style={{
+            fontSize: 16, color: "#888", fontWeight: 600, marginTop: 12,
+            fontFamily: "'Nunito Sans', sans-serif",
+            animation: "fadeUp 0.6s ease 0.7s both"
+          }}>Smart meal plans. Smarter savings.</div>
+
+          {/* Loading dots */}
+          <div style={{
+            display: "flex", gap: 8, marginTop: 48,
+            animation: "fadeIn 0.6s ease 1s both"
+          }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{
+                width: 8, height: 8, borderRadius: "50%", background: "#C8E6C9",
+                animation: `pulse 1.2s ease ${i * 0.2}s infinite`
+              }} />
+            ))}
+          </div>
+
+          <style>{`
+            @keyframes pulse {
+              0%, 100% { background: #C8E6C9; transform: scale(1); }
+              50% { background: #2E7D32; transform: scale(1.3); }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* HEADER */}
       <div style={{ background: "white", padding: "14px 20px 12px", position: "sticky", top: 0, zIndex: 50, borderBottom: "2px solid #E8F5E9", boxShadow: "0 2px 12px rgba(26,92,46,0.07)" }}>
@@ -1059,14 +1152,28 @@ export default function GoEatApp() {
                           const mc = mealColor(m.type);
                           return (
                             <div key={j} onClick={() => openRecipe(m.name, result.diet, result.cuisine)}
-                              style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "11px 16px", borderBottom: j < day.meals.length - 1 ? "1px solid #e5e0d8" : "none", cursor: "pointer" }}>
-                              <div style={{ minWidth: 62, padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, textAlign: "center" as const, flexShrink: 0, marginTop: 2, background: mc.bg, color: mc.color }}>{m.type}</div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>{m.name}</div>
-                                {m.tip && <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>💡 {m.tip}</div>}
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                                  {m.calories && <div style={{ fontSize: 11, fontWeight: 700, color: "#F97316" }}>{m.calories}</div>}
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#2E7D32" }}>📋 Recipe →</div>
+                              style={{ borderBottom: j < day.meals.length - 1 ? "1px solid #E8F5E9" : "none", cursor: "pointer" }}>
+                              {/* Food photo */}
+                              {mealPhotos[m.name] && (
+                                <div style={{ position: "relative", overflow: "hidden", height: 110 }}>
+                                  <img src={mealPhotos[m.name]} alt={m.name}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)" }} />
+                                  <div style={{ position: "absolute", bottom: 8, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                    <div style={{ fontWeight: 800, fontSize: 14, color: "white", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{m.name}</div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: mc.bg, color: mc.color }}>{m.type}</div>
+                                  </div>
+                                </div>
+                              )}
+                              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 16px" }}>
+                                {!mealPhotos[m.name] && <div style={{ minWidth: 62, padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, textAlign: "center" as const, flexShrink: 0, marginTop: 2, background: mc.bg, color: mc.color }}>{m.type}</div>}
+                                <div style={{ flex: 1 }}>
+                                  {!mealPhotos[m.name] && <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35, marginBottom: 4 }}>{m.name}</div>}
+                                  {m.tip && <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>💡 {m.tip}</div>}
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                                    {m.calories && <div style={{ fontSize: 11, fontWeight: 700, color: "#F97316" }}>{m.calories}</div>}
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#2E7D32" }}>📋 Recipe →</div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
