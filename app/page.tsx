@@ -66,6 +66,7 @@ export default function GoEatApp() {
   const [mealPhotos, setMealPhotos] = useState<Record<string,string>>({});
   const fridgeRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLInputElement>(null);
+  const manualRef = useRef<HTMLDivElement>(null);
 
   const sym = country === "CA" ? "CA$" : "$";
   const stores = country === "CA" ? CA_STORES : US_STORES;
@@ -329,7 +330,7 @@ export default function GoEatApp() {
             <span style={{ color: "#1A5C2E" }}>Go</span>
             <span style={{ color: "#F97316" }}>Eat</span>
             <span style={{
-              fontSize: 16, background: "#4CAF50", color: "white",
+              fontSize: 14, background: "#4CAF50", color: "white",
               fontWeight: 800, padding: "3px 8px", borderRadius: 8,
               marginLeft: 6, verticalAlign: "middle"
             }}>AI</span>
@@ -337,7 +338,7 @@ export default function GoEatApp() {
 
           {/* Tagline */}
           <div style={{
-            fontSize: 16, color: "#888", fontWeight: 600, marginTop: 12,
+            fontSize: 14, color: "#888", fontWeight: 600, marginTop: 12,
             fontFamily: "'Nunito Sans', sans-serif",
             animation: "fadeUp 0.6s ease 0.7s both"
           }}>Smart meal plans. Smarter savings.</div>
@@ -372,13 +373,13 @@ export default function GoEatApp() {
             <div>
               <div style={{ fontWeight: 900, fontSize: 24, lineHeight: 1, fontFamily: "'Nunito', sans-serif" }}>
                 <span style={{ color: "#1A5C2E" }}>Go</span><span style={{ color: "#F97316" }}>Eat</span>
-                <span style={{ fontSize: 16, background: "#4CAF50", color: "white", fontWeight: 800, padding: "2px 7px", borderRadius: 8, marginLeft: 5, verticalAlign: "middle", fontFamily: "'Nunito', sans-serif" }}>AI</span>
+                <span style={{ fontSize: 14, background: "#4CAF50", color: "white", fontWeight: 800, padding: "2px 7px", borderRadius: 8, marginLeft: 5, verticalAlign: "middle", fontFamily: "'Nunito', sans-serif" }}>AI</span>
               </div>
-              <div style={{ fontSize: 16, color: "#999", fontWeight: 600, marginTop: 2 }}>Smart meal plans. Smarter savings.</div>
+              <div style={{ fontSize: 11, color: "#999", fontWeight: 600, marginTop: 2 }}>Smart meal plans. Smarter savings.</div>
             </div>
           </div>
           <button onClick={() => setShowSaved(true)}
-            style={{ background: "#E8F5E9", border: "2px solid #C8E6C9", borderRadius: 99, padding: "7px 14px", color: "#1A5C2E", fontSize: 16, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: "'Nunito', sans-serif" }}>
+            style={{ background: "#E8F5E9", border: "2px solid #C8E6C9", borderRadius: 99, padding: "7px 14px", color: "#1A5C2E", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: "'Nunito', sans-serif" }}>
             📁 {savedPlans.length > 0 ? `Saved (${savedPlans.length})` : "Saved"}
           </button>
         </div>
@@ -394,7 +395,7 @@ export default function GoEatApp() {
             </div>
 
             {/* Emoji picker */}
-            <div style={{ fontSize: 16, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Choose Avatar</div>
+            <div style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Choose Avatar</div>
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" as const }}>
               {["👨","👩","🧒","👦","👧","👶","👴","👵","🧑"].map(e => (
                 <div key={e} onClick={() => setEditingMember((p: any) => ({...p, emoji: e}))}
@@ -405,13 +406,13 @@ export default function GoEatApp() {
             </div>
 
             {/* Name */}
-            <div style={{ fontSize: 16, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Name</div>
+            <div style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Name</div>
             <input type="text" placeholder="e.g. Dad, Mom, Emma..." value={editingMember.name}
               onChange={e => setEditingMember((p: any) => ({...p, name: e.target.value}))}
-              style={{ width: "100%", padding: "12px 14px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 16, fontWeight: 600, color: "#1A1A18", background: "white", outline: "none", fontFamily: "'Nunito', sans-serif", marginBottom: 16 }} />
+              style={{ width: "100%", padding: "12px 14px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 14, fontWeight: 600, color: "#1A1A18", background: "white", outline: "none", fontFamily: "'Nunito', sans-serif", marginBottom: 16 }} />
 
             {/* Diet restrictions */}
-            <div style={{ fontSize: 16, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Diet / Goal</div>
+            <div style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Diet / Goal</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
               {DIETS.filter(d => d.id !== "No Restriction").map(d => {
                 const isOn = editingMember.diets?.includes(d.id);
@@ -419,20 +420,20 @@ export default function GoEatApp() {
                   <div key={d.id} onClick={() => setEditingMember((p: any) => ({...p, diets: isOn ? p.diets.filter((x: string)=>x!==d.id) : [...(p.diets||[]), d.id]}))}
                     style={{ padding: "10px 6px", border: `1.5px solid ${isOn ? "#F97316" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#FFF4F0" : "white", cursor: "pointer", textAlign: "center" as const }}>
                     <div style={{ fontSize: 18, marginBottom: 2 }}>{d.icon}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: isOn ? "#F97316" : "#999" }}>{d.id}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#F97316" : "#999" }}>{d.id}</div>
                   </div>
                 );
               })}
             </div>
 
             {/* Allergies */}
-            <div style={{ fontSize: 16, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Allergies / Avoid</div>
+            <div style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>Allergies / Avoid</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
               {["No peanuts","No shellfish","No dairy","No gluten","No eggs","No soy","No tree nuts","No spicy"].map(a => {
                 const isOn = editingMember.allergies?.includes(a);
                 return (
                   <div key={a} onClick={() => setEditingMember((p: any) => ({...p, allergies: isOn ? p.allergies.filter((x: string)=>x!==a) : [...(p.allergies||[]), a]}))}
-                    style={{ padding: "10px 12px", border: `1.5px solid ${isOn ? "#e63946" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#FFF0F0" : "white", cursor: "pointer", fontSize: 16, fontWeight: 600, color: isOn ? "#e63946" : "#999", textAlign: "center" as const }}>
+                    style={{ padding: "10px 12px", border: `1.5px solid ${isOn ? "#e63946" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#FFF0F0" : "white", cursor: "pointer", fontSize: 14, fontWeight: 600, color: isOn ? "#e63946" : "#999", textAlign: "center" as const }}>
                     {isOn ? "✓ " : ""}{a}
                   </div>
                 );
@@ -452,11 +453,11 @@ export default function GoEatApp() {
               try { localStorage.setItem("goeatai_family_profiles", JSON.stringify(updated)); } catch {}
               setEditingMember(null);
             }}
-              style={{ width: "100%", padding: 15, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", color: "white", border: "none", borderRadius: 22, fontWeight: 800, fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif", marginBottom: 10 }}>
+              style={{ width: "100%", padding: 15, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", color: "white", border: "none", borderRadius: 22, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif", marginBottom: 10 }}>
               ✅ {editingMember.index === -1 ? "Add Member" : "Save Changes"}
             </button>
             <button onClick={() => setEditingMember(null)}
-              style={{ width: "100%", padding: 12, background: "none", border: "none", color: "#999", fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+              style={{ width: "100%", padding: 12, background: "none", border: "none", color: "#999", fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
               Cancel
             </button>
           </div>
@@ -471,13 +472,13 @@ export default function GoEatApp() {
             {/* Recipe Hero */}
             <div style={{ background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", padding: "20px 22px", color: "white", position: "relative" }}>
               <button onClick={() => setRecipe(null)}
-                style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "none", color: "white", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-              <div style={{ fontSize: 16, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.06em", display: "inline-block", padding: "3px 10px", borderRadius: 99, background: "rgba(255,255,255,0.2)", color: "white", marginBottom: 8 }}>Recipe</div>
+                style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "none", color: "white", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+              <div style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.06em", display: "inline-block", padding: "3px 10px", borderRadius: 99, background: "rgba(255,255,255,0.2)", color: "white", marginBottom: 8 }}>Recipe</div>
               <div style={{ fontWeight: 900, fontSize: 20, fontFamily: "'Nunito', sans-serif", lineHeight: 1.2, marginBottom: 10 }}>{recipe.name}</div>
               {!recipeLoading && recipe.data && (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
                   {[`⏱ Prep: ${recipe.data.prepTime}`, `🔥 Cook: ${recipe.data.cookTime}`, `👥 Serves: ${recipe.data.servings}`, `📊 ${recipe.data.difficulty}`].map(m => (
-                    <span key={m} style={{ fontSize: 16, color: "rgba(255,255,255,0.85)", fontWeight: 600 }}>{m}</span>
+                    <span key={m} style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", fontWeight: 600 }}>{m}</span>
                   ))}
                 </div>
               )}
@@ -486,30 +487,30 @@ export default function GoEatApp() {
             {recipeLoading ? (
               <div style={{ padding: "40px 22px", textAlign: "center" }}>
                 <div style={{ width: 40, height: 40, border: "3px solid #E8F5E9", borderTopColor: "#2E7D32", borderRadius: "50%", animation: "spin 0.9s linear infinite", margin: "0 auto 16px" }} />
-                <div style={{ fontWeight: 700, fontSize: 16, color: "#1A5C2E", marginBottom: 6 }}>Generating Recipe...</div>
-                <div style={{ fontSize: 16, color: "#999" }}>AI is crafting your step-by-step recipe</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1A5C2E", marginBottom: 6 }}>Generating Recipe...</div>
+                <div style={{ fontSize: 14, color: "#999" }}>AI is crafting your step-by-step recipe</div>
               </div>
             ) : recipe.data ? (
               <div style={{ padding: "20px 22px 32px" }}>
 
                 {/* Ingredients */}
-                <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E", marginBottom: 12, marginTop: 4, paddingBottom: 8, borderBottom: "2px solid #E8F5E9", display: "flex", alignItems: "center", gap: 8 }}>🛒 Ingredients</div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 12, marginTop: 4, paddingBottom: 8, borderBottom: "2px solid #E8F5E9", display: "flex", alignItems: "center", gap: 8 }}>🛒 Ingredients</div>
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: 7, marginBottom: 20 }}>
                   {recipe.data.ingredients?.map((ing: any, i: number) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F7FBF7", borderRadius: 14 }}>
-                      <span style={{ fontSize: 16, fontWeight: 600 }}>{ing.name}</span>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: "#F97316" }}>{ing.qty}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{ing.name}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>{ing.qty}</span>
                     </div>
                   ))}
                 </div>
 
                 {/* Steps */}
-                <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid #E8F5E9", display: "flex", alignItems: "center", gap: 8 }}>👨‍🍳 How to Cook</div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid #E8F5E9", display: "flex", alignItems: "center", gap: 8 }}>👨‍🍳 How to Cook</div>
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: 14, marginBottom: 20 }}>
                   {recipe.data.steps?.map((step: string, i: number) => (
                     <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#2E7D32", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 16, flexShrink: 0, marginTop: 1 }}>{i+1}</div>
-                      <div style={{ fontSize: 16, color: "#555", lineHeight: 1.6, flex: 1 }}>{step}</div>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#2E7D32", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14, flexShrink: 0, marginTop: 1 }}>{i+1}</div>
+                      <div style={{ fontSize: 14, color: "#555", lineHeight: 1.6, flex: 1 }}>{step}</div>
                     </div>
                   ))}
                 </div>
@@ -518,20 +519,20 @@ export default function GoEatApp() {
                 {recipe.data.tip && (
                   <div style={{ background: "linear-gradient(135deg,#E8F5EC,#F0FBF2)", border: "1.5px solid #81C784", borderRadius: 24, padding: "14px 16px", display: "flex", gap: 10, marginBottom: 16 }}>
                     <span style={{ fontSize: 20 }}>👨‍🍳</span>
-                    <div style={{ fontSize: 16, color: "#1A5C2E", lineHeight: 1.5, fontWeight: 500 }}>{recipe.data.tip}</div>
+                    <div style={{ fontSize: 14, color: "#1A5C2E", lineHeight: 1.5, fontWeight: 500 }}>{recipe.data.tip}</div>
                   </div>
                 )}
 
                 {/* Calories */}
                 <div style={{ background: "#E8F5E9", borderRadius: 24, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: "#1A5C2E" }}>🔥 Calories per serving</span>
-                  <span style={{ fontWeight: 900, fontSize: 16, color: "#F97316" }}>{recipe.data.calories}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1A5C2E" }}>🔥 Calories per serving</span>
+                  <span style={{ fontWeight: 900, fontSize: 14, color: "#F97316" }}>{recipe.data.calories}</span>
                 </div>
 
                 {/* YouTube */}
                 <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(recipe.name + " recipe")}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: 13, background: "#FF0000", color: "white", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 16, cursor: "pointer", textDecoration: "none" }}>
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: 13, background: "#FF0000", color: "white", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: "pointer", textDecoration: "none" }}>
                   ▶ Watch on YouTube
                 </a>
               </div>
@@ -547,14 +548,14 @@ export default function GoEatApp() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 22px" }} onClick={() => setShowSaveModal(false)}>
           <div style={{ background: "white", borderRadius: 24, width: "100%", maxWidth: 380, padding: 24 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontWeight: 900, fontSize: 20, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E", marginBottom: 6 }}>📁 Save This Plan</div>
-            <div style={{ fontSize: 16, color: "#999", marginBottom: 16 }}>Give your plan a name so you can find it later.</div>
+            <div style={{ fontSize: 14, color: "#999", marginBottom: 16 }}>Give your plan a name so you can find it later.</div>
             <input
               type="text"
               placeholder={`e.g. ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${result?.diet || "My Plan"}`}
               value={savePlanName}
               onChange={e => setSavePlanName(e.target.value)}
               autoFocus
-              style={{ width: "100%", padding: "13px 14px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 16, fontWeight: 600, color: "#1A1A18", background: "white", outline: "none", fontFamily: "'Nunito', sans-serif", marginBottom: 14 }}
+              style={{ width: "100%", padding: "13px 14px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 14, fontWeight: 600, color: "#1A1A18", background: "white", outline: "none", fontFamily: "'Nunito', sans-serif", marginBottom: 14 }}
             />
             <button onClick={() => {
               const name = savePlanName.trim() || `${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })} Plan`;
@@ -562,11 +563,11 @@ export default function GoEatApp() {
               setShowSaveModal(false);
               setSavePlanName("");
             }}
-              style={{ width: "100%", padding: 14, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", color: "white", border: "none", borderRadius: 24, fontWeight: 800, fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif", marginBottom: 10 }}>
+              style={{ width: "100%", padding: 14, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", color: "white", border: "none", borderRadius: 24, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif", marginBottom: 10 }}>
               ✅ Save Plan
             </button>
             <button onClick={() => setShowSaveModal(false)}
-              style={{ width: "100%", padding: 12, background: "none", border: "none", color: "#999", fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+              style={{ width: "100%", padding: 12, background: "none", border: "none", color: "#999", fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
               Cancel
             </button>
           </div>
@@ -579,12 +580,12 @@ export default function GoEatApp() {
           <div style={{ background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 430, margin: "0 auto", padding: "24px 22px 40px", maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <div style={{ width: 40, height: 4, background: "#e5e0d8", borderRadius: 99, margin: "0 auto 18px" }} />
             <div style={{ fontWeight: 900, fontSize: 20, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E", marginBottom: 4 }}>📁 Saved Plans</div>
-            <div style={{ fontSize: 16, color: "#999", marginBottom: 20 }}>Tap a plan to load it back.</div>
+            <div style={{ fontSize: 14, color: "#999", marginBottom: 20 }}>Tap a plan to load it back.</div>
 
             {savedPlans.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 20px", color: "#999" }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📂</div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No saved plans yet</div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>No saved plans yet</div>
                 <div style={{ fontSize: 13 }}>Generate a meal plan and tap &ldquo;Save Plan&rdquo; to save it here.</div>
               </div>
             ) : (
@@ -592,16 +593,16 @@ export default function GoEatApp() {
                 {savedPlans.map((plan, i) => (
                   <div key={i} style={{ border: "1.5px solid #E8F5E9", borderRadius: 22, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ cursor: "pointer", flex: 1 }} onClick={() => loadSavedPlan(plan)}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E", marginBottom: 4 }}>{plan.savedName}</div>
-                      <div style={{ fontSize: 16, color: "#999" }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 4 }}>{plan.savedName}</div>
+                      <div style={{ fontSize: 14, color: "#999" }}>
                         {plan.country === "CA" ? "🇨🇦" : "🇺🇸"} Family of {plan.family} · {plan.store}
                       </div>
-                      <div style={{ fontSize: 16, color: "#2E7D32", fontWeight: 600, marginTop: 2 }}>
+                      <div style={{ fontSize: 14, color: "#2E7D32", fontWeight: 600, marginTop: 2 }}>
                         {plan.sym}{plan.totalCost?.toFixed?.(2)} · {plan.diet}
                       </div>
                     </div>
                     <button onClick={() => deleteSavedPlan(i)}
-                      style={{ background: "#FFF0F0", border: "none", borderRadius: 8, padding: "6px 10px", color: "#e63946", fontSize: 16, cursor: "pointer", marginLeft: 10 }}>
+                      style={{ background: "#FFF0F0", border: "none", borderRadius: 8, padding: "6px 10px", color: "#e63946", fontSize: 14, cursor: "pointer", marginLeft: 10 }}>
                       🗑️
                     </button>
                   </div>
@@ -610,7 +611,7 @@ export default function GoEatApp() {
             )}
 
             <button onClick={() => setShowSaved(false)}
-              style={{ width: "100%", padding: 14, background: "none", border: "2px solid #e5e0d8", borderRadius: 22, fontWeight: 700, fontSize: 16, color: "#999", cursor: "pointer", marginTop: 20, fontFamily: "'Nunito', sans-serif" }}>
+              style={{ width: "100%", padding: 14, background: "none", border: "2px solid #e5e0d8", borderRadius: 22, fontWeight: 700, fontSize: 14, color: "#999", cursor: "pointer", marginTop: 20, fontFamily: "'Nunito', sans-serif" }}>
               Close
             </button>
           </div>
@@ -627,7 +628,7 @@ export default function GoEatApp() {
             <div style={{ position: "absolute", left: -20, bottom: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(249,115,22,0.08)" }} />
 
             {/* Badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "white", border: "2px solid #C8E6C9", color: "#2E7D32", fontSize: 16, fontWeight: 800, padding: "5px 14px", borderRadius: 99, marginBottom: 16, boxShadow: "0 2px 8px rgba(26,92,46,0.1)" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "white", border: "2px solid #C8E6C9", color: "#2E7D32", fontSize: 14, fontWeight: 800, padding: "5px 14px", borderRadius: 99, marginBottom: 16, boxShadow: "0 2px 8px rgba(26,92,46,0.1)" }}>
               <span style={{ width: 7, height: 7, background: "#4CAF50", borderRadius: "50%", display: "inline-block" }} /> Now in Beta — Free to Try
             </div>
 
@@ -637,7 +638,7 @@ export default function GoEatApp() {
               <span style={{ color: "#F97316" }}>scan your fridge first. 📸</span>
             </div>
 
-            <div style={{ fontSize: 16, color: "#555", lineHeight: 1.7, marginBottom: 18 }}>
+            <div style={{ fontSize: 14, color: "#555", lineHeight: 1.7, marginBottom: 18 }}>
               GoEat AI turns what you already have into a personalized 7-day meal plan — with calories, shopping costs, and estimated savings.
             </div>
 
@@ -651,7 +652,7 @@ export default function GoEatApp() {
               ].map(({ emoji, text }) => (
                 <div key={text} style={{ background: "white", borderRadius: 16, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, border: "1.5px solid #C8E6C9", boxShadow: "0 2px 6px rgba(26,92,46,0.06)" }}>
                   <span style={{ fontSize: 18 }}>{emoji}</span>
-                  <span style={{ fontSize: 16, color: "#1A5C2E", fontWeight: 700 }}>{text}</span>
+                  <span style={{ fontSize: 14, color: "#1A5C2E", fontWeight: 700 }}>{text}</span>
                 </div>
               ))}
             </div>
@@ -659,29 +660,32 @@ export default function GoEatApp() {
             {/* Scan buttons */}
             <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "fridge")} />
             <button onClick={() => fridgeRef.current?.click()}
-              style={{ width: "100%", padding: 16, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 6px 20px rgba(249,115,22,0.35)", marginBottom: 12, fontFamily: "'Nunito', sans-serif" }}>
+              style={{ width: "100%", padding: 16, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 6px 20px rgba(249,115,22,0.35)", marginBottom: 12, fontFamily: "'Nunito', sans-serif" }}>
               <span style={{ fontSize: 22 }}>🧊</span> Scan My Fridge
             </button>
 
             <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "receipt")} />
             <div onClick={() => receiptRef.current?.click()}
-              style={{ textAlign: "center", fontSize: 16, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>
+              style={{ textAlign: "center", fontSize: 14, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>
               🧾 Or scan your grocery receipt
             </div>
 
             {/* Set up manually — right here! */}
-            <div onClick={() => setShowManual(v => !v)}
-              style={{ marginTop: 14, textAlign: "center", padding: "11px 14px", border: "1.5px solid #C8E6C9", borderRadius: 99, cursor: "pointer", fontSize: 16, fontWeight: 700, color: "#1A5C2E", background: "white", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              ⚙️ Set up manually <span style={{ fontSize: 16, color: "#999" }}>(family size, budget, store...)</span>
-              <span style={{ fontSize: 16, color: "#999" }}>{showManual ? "▲" : "▼"}</span>
+            <div onClick={() => {
+              setShowManual(v => !v);
+              setTimeout(() => manualRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+            }}
+              style={{ marginTop: 14, textAlign: "center", padding: "11px 14px", border: "1.5px solid #C8E6C9", borderRadius: 99, cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#1A5C2E", background: "white", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              ⚙️ Set up manually <span style={{ fontSize: 14, color: "#999" }}>(family size, budget, store...)</span>
+              <span style={{ fontSize: 14, color: "#999" }}>{showManual ? "▲" : "▼"}</span>
             </div>
 
-            <div style={{ textAlign: "center", fontSize: 16, color: "#999", marginTop: 8 }}>Powered by Claude AI · US & Canada</div>
+            <div style={{ textAlign: "center", fontSize: 14, color: "#999", marginTop: 8 }}>Powered by Claude AI · US & Canada</div>
           </div>
 
           {/* 5 Merits */}
           <div style={{ padding: "20px 22px 0" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "#2E7D32", marginBottom: 12, textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "#2E7D32", marginBottom: 12, textAlign: "center" }}>
               One app. Five problems solved.
             </div>
             <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
@@ -689,22 +693,30 @@ export default function GoEatApp() {
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", background: "#F1F8E9", borderRadius: 24, border: "1px solid #C8E6C9" }}>
                   <div style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{m.icon}</div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E", marginBottom: 3 }}>{m.title}</div>
-                    <div style={{ fontSize: 16, color: "#666", lineHeight: 1.5 }}>{m.desc}</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 3 }}>{m.title}</div>
+                    <div style={{ fontSize: 14, color: "#666", lineHeight: 1.5 }}>{m.desc}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* ChatGPT difference */}
-          <div style={{ margin: "20px 22px 0", background: "#FFF8F0", border: "1.5px solid #F97316", borderRadius: 24, padding: "16px 18px" }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#F97316", marginBottom: 8 }}>🆚 Why not just ask ChatGPT?</div>
-            <div style={{ fontSize: 16, color: "#555", lineHeight: 1.7 }}>
-              ChatGPT gives you one recipe at a time.<br/>
-              <strong style={{ color: "#1A5C2E" }}>GoEat AI gives you the full workflow:</strong><br/>
-              📸 Photo → 🤖 7-day plan → 🥗 Calories → 🛒 Shopping list → 💰 Estimated cost & savings<br/>
-              <span style={{ color: "#F97316", fontWeight: 700 }}>All in one tap. Automatically connected.</span>
+          {/* Why GoEat AI */}
+          <div style={{ margin: "20px 22px 0", background: "#F1F8E9", border: "1.5px solid #C8E6C9", borderRadius: 24, padding: "16px 18px" }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 8 }}>✨ Why GoEat AI?</div>
+            <div style={{ fontSize: 13, color: "#1A5C2E", fontWeight: 700, marginBottom: 10 }}>
+              More than a recipe. It&apos;s your complete meal workflow.
+            </div>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 6, marginBottom: 10 }}>
+              {["📸 Photo","🤖 7-day plan","🍽️ Meals","🥗 Calories","🛒 Shopping list","💰 Cost & savings"].map((step, i, arr) => (
+                <span key={step} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1A5C2E", background: "white", padding: "4px 10px", borderRadius: 99, border: "1.5px solid #C8E6C9" }}>{step}</span>
+                  {i < arr.length - 1 && <span style={{ color: "#81C784", fontWeight: 700 }}>→</span>}
+                </span>
+              ))}
+            </div>
+            <div style={{ fontSize: 14, color: "#2E7D32", fontWeight: 700 }}>
+              All in one tap. Automatically connected.
             </div>
           </div>
 
@@ -716,7 +728,7 @@ export default function GoEatApp() {
                 {scanLoading && (
                   <div style={{ position: "absolute", inset: 0, background: "rgba(26,92,46,0.80)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
                     <div style={{ width: 32, height: 32, border: "3px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                    <div style={{ color: "white", fontSize: 16, fontWeight: 700 }}>Analyzing your {scanMode === "receipt" ? "receipt" : "fridge"}...</div>
+                    <div style={{ color: "white", fontSize: 14, fontWeight: 700 }}>Analyzing your {scanMode === "receipt" ? "receipt" : "fridge"}...</div>
                   </div>
                 )}
               </div>
@@ -726,41 +738,54 @@ export default function GoEatApp() {
                 <div style={{ background: "white", border: "1.5px solid #E8F5E9", borderRadius: 24, padding: 14, marginTop: 10 }}>
                   {/* Header */}
                   <div style={{ background: "#E8F5E9", borderRadius: 14, padding: "10px 14px", marginBottom: 12 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E" }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E" }}>
                       ✅ We found {scannedItems.length} ingredients you already have.
                     </div>
-                    <div style={{ fontSize: 16, color: "#2E7D32", marginTop: 3 }}>
+                    <div style={{ fontSize: 14, color: "#2E7D32", marginTop: 3 }}>
                       Let&apos;s use them before they go to waste. 🌱
                     </div>
                   </div>
 
-                  {/* Items */}
-                  <div style={{ fontSize: 16, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.06em", color: "#2E7D32", marginBottom: 8 }}>
-                    Detected ingredients
+                  {/* Confirmed items */}
+                  <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.06em", color: "#1A5C2E", marginBottom: 8 }}>
+                    ✅ Confirmed ({scannedItems.length})
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 12 }}>
                     {scannedItems.map((item, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", color: "#1A5C2E", fontSize: 16, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", color: "#1A5C2E", fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 99, border: "1.5px solid #C8E6C9" }}>
                         {item}
-                        <span style={{ cursor: "pointer" }} onClick={() => setScannedItems(p => p.filter((_, j) => j !== i))}>×</span>
+                        <span style={{ cursor: "pointer", opacity: 0.6 }} onClick={() => setScannedItems(p => p.filter((_, j) => j !== i))}>×</span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Uncertain items */}
+                  {/* Uncertain items — tap to add */}
                   {uncertainItems.length > 0 && (
-                    <div style={{ background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "10px 12px", marginBottom: 12 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: "#856404", marginBottom: 6 }}>⚠️ Quantity uncertain — please confirm:</div>
-                      {uncertainItems.map((item, i) => (
-                        <div key={i} style={{ fontSize: 16, color: "#856404", marginBottom: 4 }}>
-                          • {item} — <em>How much do you have?</em>
-                        </div>
-                      ))}
+                    <div style={{ background: "#FFFBF0", border: "1.5px solid #F5C842", borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#856404", marginBottom: 8 }}>
+                        ⚠️ {uncertainItems.length} items need confirmation
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+                        {uncertainItems.map((item, i) => {
+                          const name = item.split(" —")[0];
+                          const isAdded = scannedItems.includes(name);
+                          return (
+                            <div key={i} onClick={() => {
+                              if (!isAdded) setScannedItems(p => [...p, name]);
+                              else setScannedItems(p => p.filter(x => x !== name));
+                            }}
+                              style={{ display: "flex", alignItems: "center", gap: 4, background: isAdded ? "#E8F5E9" : "white", color: isAdded ? "#1A5C2E" : "#856404", fontSize: 13, fontWeight: 700, padding: "5px 12px", borderRadius: 99, border: `1.5px solid ${isAdded ? "#C8E6C9" : "#F5C842"}`, cursor: "pointer" }}>
+                              {isAdded ? "✓" : "+"} {name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#999", marginTop: 8 }}>Tap to add items you recognize</div>
                     </div>
                   )}
 
                   <button onClick={generate}
-                    style={{ width: "100%", padding: 13, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", color: "white", border: "none", borderRadius: 24, fontWeight: 800, fontSize: 16, cursor: "pointer" }}>
+                    style={{ width: "100%", padding: 13, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", color: "white", border: "none", borderRadius: 24, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
                     ✦ Build My 7-Day Plan Using These
                   </button>
                 </div>
@@ -770,18 +795,18 @@ export default function GoEatApp() {
 
           {/* Manual fields */}
           {showManual && (
-            <div style={{ padding: "20px 22px 0", display: "flex", flexDirection: "column" as const, gap: 20 }}>
-              {error && <div style={{ background: "#FFF0F0", border: "1.5px solid #FFCDD2", borderRadius: 24, padding: "12px 14px", fontSize: 16, color: "#e63946", fontWeight: 600 }}>⚠️ {error}</div>}
+            <div ref={manualRef} style={{ padding: "20px 22px 0", display: "flex", flexDirection: "column" as const, gap: 20 }}>
+              {error && <div style={{ background: "#FFF0F0", border: "1.5px solid #FFCDD2", borderRadius: 24, padding: "12px 14px", fontSize: 14, color: "#e63946", fontWeight: 600 }}>⚠️ {error}</div>}
 
               {/* Country */}
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>🌍 Country</div>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>🌍 Country</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {[["CA","🇨🇦","Canada"],["US","🇺🇸","United States"]].map(([code,flag,name]) => (
                     <div key={code} onClick={() => { setCountry(code); setStore(code === "CA" ? CA_STORES[0] : US_STORES[0]); }}
                       style={{ flex: 1, padding: "11px 8px", border: `1.5px solid ${country === code ? (code === "CA" ? "#C8102E" : "#2E7D32") : "#e5e0d8"}`, borderRadius: 24, background: country === code ? (code === "CA" ? "#FFF0F0" : "#E8F5E9") : "white", cursor: "pointer", textAlign: "center" as const }}>
                       <div style={{ fontSize: 22 }}>{flag}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4, color: country === code ? (code === "CA" ? "#C8102E" : "#1A5C2E") : "#999" }}>{name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: country === code ? (code === "CA" ? "#C8102E" : "#1A5C2E") : "#999" }}>{name}</div>
                     </div>
                   ))}
                 </div>
@@ -789,11 +814,11 @@ export default function GoEatApp() {
 
               {/* Family */}
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>👨‍👩‍👧‍👦 Family Size</div>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>👨‍👩‍👧‍👦 Family Size</div>
                 <div style={{ display: "flex", gap: 7 }}>
                   {[1,2,3,4,5,6].map(n => (
                     <div key={n} onClick={() => setFamily(n)}
-                      style={{ flex: 1, padding: "11px 4px", border: `1.5px solid ${family === n ? "#2E7D32" : "#e5e0d8"}`, borderRadius: 14, background: family === n ? "#E8F5E9" : "white", fontSize: 16, fontWeight: 700, color: family === n ? "#1A5C2E" : "#999", cursor: "pointer", textAlign: "center" as const }}>
+                      style={{ flex: 1, padding: "11px 4px", border: `1.5px solid ${family === n ? "#2E7D32" : "#e5e0d8"}`, borderRadius: 14, background: family === n ? "#E8F5E9" : "white", fontSize: 14, fontWeight: 700, color: family === n ? "#1A5C2E" : "#999", cursor: "pointer", textAlign: "center" as const }}>
                       {n}{n === 6 ? "+" : ""}
                     </div>
                   ))}
@@ -802,36 +827,36 @@ export default function GoEatApp() {
 
               {/* Budget */}
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>💰 Weekly Budget ({sym})</div>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>💰 Weekly Budget ({sym})</div>
                 <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, fontWeight: 700, color: "#2E7D32", pointerEvents: "none" }}>{sym}</span>
+                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14, fontWeight: 700, color: "#2E7D32", pointerEvents: "none" }}>{sym}</span>
                   <input type="number" placeholder={country === "CA" ? "e.g. 180" : "e.g. 150"} value={budget} onChange={e => setBudget(e.target.value)}
-                    style={{ width: "100%", padding: "13px 14px 13px 44px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 16, fontWeight: 600, color: "#1A1A18", background: "white", outline: "none", fontFamily: "'Nunito', sans-serif" }} />
+                    style={{ width: "100%", padding: "13px 14px 13px 44px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 14, fontWeight: 600, color: "#1A1A18", background: "white", outline: "none", fontFamily: "'Nunito', sans-serif" }} />
                 </div>
-                <div style={{ fontSize: 16, color: "#999", marginTop: 5 }}>Estimated prices — actual costs may vary by location.</div>
+                <div style={{ fontSize: 14, color: "#999", marginTop: 5 }}>Estimated prices — actual costs may vary by location.</div>
               </div>
 
               {/* Store */}
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>🏪 Grocery Store</div>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>🏪 Grocery Store</div>
                 <select value={store} onChange={e => setStore(e.target.value)}
-                  style={{ width: "100%", padding: "13px 38px 13px 14px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 16, fontWeight: 500, color: "#1A1A18", background: "white", outline: "none", cursor: "pointer", appearance: "none", fontFamily: "'Nunito', sans-serif" }}>
+                  style={{ width: "100%", padding: "13px 38px 13px 14px", border: "1.5px solid #E8F5E9", borderRadius: 24, fontSize: 14, fontWeight: 500, color: "#1A1A18", background: "white", outline: "none", cursor: "pointer", appearance: "none", fontFamily: "'Nunito', sans-serif" }}>
                   {stores.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
 
               {/* Diet & Cuisine — Multi Select */}
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>
                   🥗 Diet & Cuisine
-                  <span style={{ fontSize: 16, color: "#999", fontWeight: 500, marginLeft: 6 }}>Select multiple</span>
+                  <span style={{ fontSize: 14, color: "#999", fontWeight: 500, marginLeft: 6 }}>Select multiple</span>
                 </div>
 
                 {/* Tab switcher */}
                 <div style={{ display: "flex", gap: 0, border: "1.5px solid #E8F5E9", borderRadius: 14, overflow: "hidden", marginBottom: 10 }}>
                   {[["diet","🥗 Diet Goal"],["cuisine","🍜 Cuisine Style"]].map(([t,l]) => (
                     <button key={t} onClick={() => setPrefTab(t)}
-                      style={{ flex: 1, padding: "9px 6px", border: "none", background: prefTab === t ? "#1A5C2E" : "white", color: prefTab === t ? "white" : "#999", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                      style={{ flex: 1, padding: "9px 6px", border: "none", background: prefTab === t ? "#1A5C2E" : "white", color: prefTab === t ? "white" : "#999", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
                       {l} {prefTab === t && t === "diet" && diets.length > 0 ? `(${diets.length})` : ""}
                       {prefTab === t && t === "cuisine" && cuisines.length > 0 ? `(${cuisines.length})` : ""}
                     </button>
@@ -846,9 +871,9 @@ export default function GoEatApp() {
                       return (
                         <div key={item.id} onClick={() => setDiets(prev => isOn ? prev.filter(d => d !== item.id) : [...prev, item.id])}
                           style={{ padding: "11px 6px", border: `1.5px solid ${isOn ? "#F97316" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#FFF4F0" : "white", cursor: "pointer", textAlign: "center" as const, position: "relative" as const }}>
-                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 16, color: "#F97316", fontWeight: 900 }}>✓</div>}
+                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 14, color: "#F97316", fontWeight: 900 }}>✓</div>}
                           <div style={{ fontSize: 20, marginBottom: 3 }}>{item.icon}</div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: isOn ? "#F97316" : "#999" }}>{item.id}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#F97316" : "#999" }}>{item.id}</div>
                         </div>
                       );
                     })}
@@ -863,9 +888,9 @@ export default function GoEatApp() {
                       return (
                         <div key={item.id} onClick={() => setCuisines(prev => isOn ? prev.filter(c => c !== item.id) : [...prev, item.id])}
                           style={{ padding: "11px 6px", border: `1.5px solid ${isOn ? "#2E7D32" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#E8F5E9" : "white", cursor: "pointer", textAlign: "center" as const, position: "relative" as const }}>
-                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 16, color: "#2E7D32", fontWeight: 900 }}>✓</div>}
+                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 14, color: "#2E7D32", fontWeight: 900 }}>✓</div>}
                           <div style={{ fontSize: 20, marginBottom: 3 }}>{item.icon}</div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: isOn ? "#2E7D32" : "#999" }}>{item.id}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#2E7D32" : "#999" }}>{item.id}</div>
                         </div>
                       );
                     })}
@@ -875,12 +900,12 @@ export default function GoEatApp() {
                 {/* Selected tags summary */}
                 {(diets.length > 0 || cuisines.length > 0) && (
                   <div style={{ marginTop: 12, padding: "10px 12px", background: "#F1F8E9", borderRadius: 14, border: "1px solid #C8E6C9" }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "#2E7D32", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Your selections:</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#2E7D32", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Your selections:</div>
                     <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
                       {diets.map(d => {
                         const item = DIETS.find(x => x.id === d);
                         return (
-                          <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF4F0", border: "1px solid #F97316", color: "#F97316", fontSize: 16, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
+                          <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF4F0", border: "1px solid #F97316", color: "#F97316", fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
                             {item?.icon} {d}
                             <span style={{ cursor: "pointer", marginLeft: 2 }} onClick={() => setDiets(prev => prev.filter(x => x !== d))}>×</span>
                           </div>
@@ -889,7 +914,7 @@ export default function GoEatApp() {
                       {cuisines.map(c => {
                         const item = CUISINES.find(x => x.id === c);
                         return (
-                          <div key={c} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", border: "1px solid #2E7D32", color: "#1A5C2E", fontSize: 16, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
+                          <div key={c} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", border: "1px solid #2E7D32", color: "#1A5C2E", fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
                             {item?.icon} {c}
                             <span style={{ cursor: "pointer", marginLeft: 2 }} onClick={() => setCuisines(prev => prev.filter(x => x !== c))}>×</span>
                           </div>
@@ -902,9 +927,9 @@ export default function GoEatApp() {
 
               {/* Family Profiles */}
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span>👨‍👩‍👧‍👦 Family Profiles</span>
-                  <span style={{ fontSize: 16, color: "#999", fontWeight: 500 }}>optional</span>
+                  <span style={{ fontSize: 14, color: "#999", fontWeight: 500 }}>optional</span>
                 </div>
 
                 {familyProfiles.length > 0 && (
@@ -914,16 +939,16 @@ export default function GoEatApp() {
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ fontSize: 22 }}>{member.emoji}</span>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 16, color: "#1A5C2E" }}>{member.name}</div>
-                            <div style={{ fontSize: 16, color: "#999", marginTop: 2 }}>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "#1A5C2E" }}>{member.name}</div>
+                            <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>
                               {[...member.diets, ...member.allergies].filter(Boolean).join(" · ") || "No restrictions"}
                             </div>
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => setEditingMember({...member, index: i})} style={{ background: "#E8F5E9", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 16, cursor: "pointer", color: "#1A5C2E" }}>Edit</button>
+                          <button onClick={() => setEditingMember({...member, index: i})} style={{ background: "#E8F5E9", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 14, cursor: "pointer", color: "#1A5C2E" }}>Edit</button>
                           <button onClick={() => { const u = familyProfiles.filter((_,j)=>j!==i); setFamilyProfiles(u); try{localStorage.setItem("goeatai_family_profiles",JSON.stringify(u));}catch{} }}
-                            style={{ background: "#FFF0F0", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 16, cursor: "pointer", color: "#e63946" }}>✕</button>
+                            style={{ background: "#FFF0F0", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 14, cursor: "pointer", color: "#e63946" }}>✕</button>
                         </div>
                       </div>
                     ))}
@@ -931,12 +956,12 @@ export default function GoEatApp() {
                 )}
 
                 <button onClick={() => setEditingMember({ name: "", emoji: "👤", diets: [], allergies: [], index: -1 })}
-                  style={{ width: "100%", padding: "11px 14px", border: "1.5px dashed #e5e0d8", borderRadius: 24, background: "white", fontSize: 16, fontWeight: 700, color: "#2E7D32", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                  style={{ width: "100%", padding: "11px 14px", border: "1.5px dashed #e5e0d8", borderRadius: 24, background: "white", fontSize: 14, fontWeight: 700, color: "#2E7D32", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
                   + Add Family Member
                 </button>
 
                 {familyProfiles.length > 0 && (
-                  <div style={{ marginTop: 8, padding: "8px 12px", background: "#E8F5E9", borderRadius: 8, fontSize: 16, color: "#1A5C2E", fontWeight: 600 }}>
+                  <div style={{ marginTop: 8, padding: "8px 12px", background: "#E8F5E9", borderRadius: 8, fontSize: 14, color: "#1A5C2E", fontWeight: 600 }}>
                     ✅ GoEat AI will consider all {familyProfiles.length} member{familyProfiles.length > 1 ? "s" : ""}&apos; restrictions
                   </div>
                 )}
@@ -947,100 +972,56 @@ export default function GoEatApp() {
                 style={{ width: "100%", padding: 17, background: "linear-gradient(135deg,#F97316,#EA580C)", color: "white", border: "none", borderRadius: 22, fontWeight: 800, fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 6px 24px rgba(249,115,22,0.38)" }}>
                 🍽️ Generate My Meal Plan
               </button>
-              <div style={{ textAlign: "center", fontSize: 16, color: "#999", marginTop: -12, paddingBottom: 8 }}>Powered by Claude AI · Takes ~15 seconds</div>
+              <div style={{ textAlign: "center", fontSize: 14, color: "#999", marginTop: -12, paddingBottom: 8 }}>Powered by Claude AI · Takes ~15 seconds</div>
             </div>
           )}
 
-          {/* What are you craving? */}
-          <div style={{ margin: "20px 22px 0", background: "white", border: "2px solid #C8E6C9", borderRadius: 24, padding: "18px 18px", boxShadow: "0 2px 12px rgba(26,92,46,0.07)" }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E", marginBottom: 4, fontFamily: "'Nunito', sans-serif" }}>😋 What are you craving today?</div>
-            <div style={{ fontSize: 16, color: "#888", marginBottom: 14 }}>Tell us what you want to eat — GoEat AI will find the recipe and ingredients!</div>
+          {/* Craving — subtle sub-feature */}
+          <div style={{ margin: "16px 22px 0", padding: "12px 16px", border: "1px solid #E8F5E9", borderRadius: 16, background: "#FAFFFE" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#888", marginBottom: 8 }}>🔎 Craving something specific?</div>
             <div style={{ display: "flex", gap: 8 }}>
               <input
                 type="text"
-                placeholder="e.g. Kimchi stew, Keto pasta, Tacos..."
+                placeholder="Kimchi jjigae, tacos, keto pasta..."
                 value={cravingInput}
                 onChange={e => setCravingInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && searchCraving()}
-                style={{ flex: 1, padding: "12px 14px", border: "1.5px solid #C8E6C9", borderRadius: 99, fontSize: 16, fontWeight: 500, color: "#1A3A1A", background: "#F7FBF7", outline: "none", fontFamily: "'Nunito Sans', sans-serif" }}
+                style={{ flex: 1, padding: "9px 14px", border: "1px solid #C8E6C9", borderRadius: 99, fontSize: 14, color: "#1A3A1A", background: "white", outline: "none", fontFamily: "'Nunito Sans', sans-serif" }}
               />
               <button onClick={searchCraving} disabled={!cravingInput.trim() || cravingLoading}
-                style={{ padding: "12px 18px", background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif", opacity: !cravingInput.trim() ? 0.5 : 1 }}>
-                {cravingLoading ? "..." : "Find 🍳"}
+                style={{ padding: "9px 16px", background: "#1A5C2E", color: "white", border: "none", borderRadius: 99, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif", opacity: !cravingInput.trim() ? 0.5 : 1 }}>
+                {cravingLoading ? "..." : "Find →"}
               </button>
             </div>
 
-            {/* Quick suggestions */}
-            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 10 }}>
-              {["Kimchi Jjigae 🇰🇷","Keto Salmon 🥑","Chicken Tacos 🇲🇽","Pasta Carbonara 🇮🇹","Pad Thai 🇹🇭","Butter Chicken 🇮🇳"].map(s => (
-                <div key={s} onClick={() => { setCravingInput(s.split(" ").slice(0,-1).join(" ")); }}
-                  style={{ fontSize: 16, fontWeight: 700, padding: "5px 12px", borderRadius: 99, background: "#F1F8E9", border: "1.5px solid #C8E6C9", color: "#1A5C2E", cursor: "pointer" }}>
-                  {s}
-                </div>
-              ))}
-            </div>
-
-            {/* Craving result */}
+            {/* Craving result — compact */}
             {cravingLoading && (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "#888", fontSize: 13 }}>
-                <div style={{ width: 28, height: 28, border: "3px solid #C8E6C9", borderTopColor: "#2E7D32", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 10px" }} />
-                Finding the perfect recipe...
+              <div style={{ textAlign: "center", padding: "14px 0", color: "#888", fontSize: 13 }}>
+                <div style={{ width: 22, height: 22, border: "2px solid #C8E6C9", borderTopColor: "#2E7D32", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 8px" }} />
+                Finding recipe...
               </div>
             )}
 
             {cravingResult && !cravingLoading && (
-              <div style={{ marginTop: 16, borderTop: "1.5px solid #E8F5E9", paddingTop: 14 }}>
-                {/* Recipe card */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E", fontFamily: "'Nunito', sans-serif" }}>{cravingResult.name}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#F97316" }}>{cravingResult.calories}</div>
+              <div style={{ marginTop: 12, borderTop: "1px solid #E8F5E9", paddingTop: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#1A5C2E" }}>{cravingResult.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#F97316" }}>{cravingResult.calories}</div>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
                   {[`⏱ ${cravingResult.prepTime}`, `🔥 ${cravingResult.cookTime}`, `📊 ${cravingResult.difficulty}`].map(m => (
-                    <span key={m} style={{ fontSize: 16, background: "#F1F8E9", border: "1px solid #C8E6C9", color: "#2E7D32", fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>{m}</span>
+                    <span key={m} style={{ fontSize: 12, background: "#F1F8E9", border: "1px solid #C8E6C9", color: "#2E7D32", fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>{m}</span>
                   ))}
                 </div>
-
-                {/* Ingredients */}
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#1A5C2E", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8 }}>🛒 Ingredients</div>
-                <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, marginBottom: 14 }}>
-                  {cravingResult.ingredients?.slice(0, 5).map((ing: any, i: number) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F7FBF7", borderRadius: 10, fontSize: 13 }}>
-                      <span style={{ fontWeight: 600 }}>{ing.name}</span>
-                      <span style={{ fontWeight: 700, color: "#F97316" }}>{ing.qty}</span>
-                    </div>
-                  ))}
-                  {cravingResult.ingredients?.length > 5 && (
-                    <div style={{ fontSize: 16, color: "#888", textAlign: "center" as const }}>+{cravingResult.ingredients.length - 5} more ingredients</div>
-                  )}
-                </div>
-
-                {/* Steps preview */}
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#1A5C2E", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8 }}>👨‍🍳 How to Cook</div>
-                <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, marginBottom: 14 }}>
-                  {cravingResult.steps?.slice(0, 3).map((step: string, i: number) => (
-                    <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#2E7D32", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 16, flexShrink: 0 }}>{i+1}</div>
-                      <div style={{ fontSize: 16, color: "#555", lineHeight: 1.5 }}>{step}</div>
-                    </div>
-                  ))}
-                  {cravingResult.steps?.length > 3 && (
-                    <div style={{ fontSize: 16, color: "#888", textAlign: "center" as const }}>+{cravingResult.steps.length - 3} more steps</div>
-                  )}
-                </div>
-
-                {/* Chef tip */}
-                {cravingResult.tip && (
-                  <div style={{ background: "#F1F8E9", border: "1.5px solid #C8E6C9", borderRadius: 14, padding: "12px 14px", display: "flex", gap: 8, marginBottom: 14 }}>
-                    <span>👨‍🍳</span>
-                    <span style={{ fontSize: 16, color: "#1A5C2E", fontWeight: 600, lineHeight: 1.5 }}>{cravingResult.tip}</span>
+                {cravingResult.ingredients?.slice(0, 4).map((ing: any, i: number) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "#F7FBF7", borderRadius: 8, fontSize: 13, marginBottom: 5 }}>
+                    <span style={{ fontWeight: 600 }}>{ing.name}</span>
+                    <span style={{ fontWeight: 700, color: "#F97316" }}>{ing.qty}</span>
                   </div>
-                )}
-
-                {/* YouTube */}
+                ))}
                 <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(cravingResult.name + " recipe")}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: 12, background: "#FF0000", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 16, cursor: "pointer", textDecoration: "none", fontFamily: "'Nunito', sans-serif" }}>
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: 10, background: "#FF0000", color: "white", border: "none", borderRadius: 99, fontWeight: 700, fontSize: 13, cursor: "pointer", textDecoration: "none", marginTop: 10 }}>
                   ▶ Watch on YouTube
                 </a>
               </div>
@@ -1049,10 +1030,10 @@ export default function GoEatApp() {
 
           {/* Give Back */}
           <div style={{ margin: "22px 22px 32px", background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: 22, padding: 20, color: "white" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#81C784", marginBottom: 8 }}>❤️ GoEatAI Gives Back</div>
+            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#81C784", marginBottom: 8 }}>❤️ GoEatAI Gives Back</div>
             <div style={{ fontWeight: 900, fontSize: 18, fontFamily: "'Nunito', sans-serif", marginBottom: 6 }}>Eat Smart. Give Back.</div>
-            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>A portion of every Premium subscription supports food banks and hunger relief programs.</div>
-            <div style={{ fontSize: 16, color: "#81C784", textAlign: "center", marginTop: 12 }}>❤️ &ldquo;A portion of GoEatAI profits supports food charities.&rdquo;</div>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>A portion of every Premium subscription supports food banks and hunger relief programs.</div>
+            <div style={{ fontSize: 14, color: "#81C784", textAlign: "center", marginTop: 12 }}>❤️ &ldquo;A portion of GoEatAI profits supports food charities.&rdquo;</div>
           </div>
         </div>
       )}
@@ -1063,12 +1044,12 @@ export default function GoEatApp() {
           <div style={{ width: 56, height: 56, border: "4px solid #E8F5E9", borderTopColor: "#2E7D32", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
           <div style={{ textAlign: "center" }}>
             <div style={{ fontWeight: 800, fontSize: 18, color: "#1A5C2E" }}>Building your plan...</div>
-            <div style={{ fontSize: 16, color: "#999", marginTop: 6, lineHeight: 1.6 }}>Creating a 7-day meal plan<br />for a family of {family} at {store}</div>
+            <div style={{ fontSize: 14, color: "#999", marginTop: 6, lineHeight: 1.6 }}>Creating a 7-day meal plan<br />for a family of {family} at {store}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 10, width: "100%" }}>
             {["Analyzing your ingredients","Crafting 7-day meal schedule","Building smart shopping list","Calculating estimated costs & savings"].map((label, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 500, color: loadStep > i ? "#2E7D32" : "#999" }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", border: loadStep > i ? "none" : "2px solid #e5e0d8", background: loadStep > i ? "#2E7D32" : "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "white", flexShrink: 0 }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 500, color: loadStep > i ? "#2E7D32" : "#999" }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", border: loadStep > i ? "none" : "2px solid #e5e0d8", background: loadStep > i ? "#2E7D32" : "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "white", flexShrink: 0 }}>
                   {loadStep > i ? "✓" : ""}
                 </div>
                 {label}
@@ -1083,14 +1064,14 @@ export default function GoEatApp() {
         <div>
           {/* Hero */}
           <div style={{ background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", padding: "22px 22px 18px", color: "white" }}>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#81C784", marginBottom: 4 }}>✦ Your personalized plan is ready</div>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#81C784", marginBottom: 4 }}>✦ Your personalized plan is ready</div>
             <div style={{ fontWeight: 900, fontSize: 22, fontFamily: "'Nunito', sans-serif", marginBottom: 2 }}>Week of Meals 🎉</div>
-            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.6)" }}>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }}>
               {result.country === "CA" ? "🇨🇦" : "🇺🇸"} Family of {result.family} · {result.store}
               {result.cuisine !== "Any Cuisine" ? ` · ${result.cuisine}` : ""}
             </div>
             {result.scannedCount > 0 && (
-              <div style={{ marginTop: 8, background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 12px", fontSize: 16, color: "#81C784", fontWeight: 600 }}>
+              <div style={{ marginTop: 8, background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 12px", fontSize: 14, color: "#81C784", fontWeight: 600 }}>
                 🌱 Using {result.scannedCount} ingredients from your fridge
               </div>
             )}
@@ -1100,7 +1081,7 @@ export default function GoEatApp() {
           <div style={{ display: "flex", gap: 4, padding: "12px 22px", borderBottom: "1px solid #e5e0d8" }}>
             {[["plan","🗓 Plan"],["shop","🛒 Shop"],["budget","💰 Budget"]].map(([id,label]) => (
               <button key={id} onClick={() => setTab(id)}
-                style={{ flex: 1, padding: "8px 4px", border: "none", background: tab === id ? "#1A5C2E" : "none", color: tab === id ? "white" : "#999", fontSize: 16, fontWeight: 700, cursor: "pointer", borderRadius: 8, fontFamily: "'Nunito', sans-serif" }}>{label}</button>
+                style={{ flex: 1, padding: "8px 4px", border: "none", background: tab === id ? "#1A5C2E" : "none", color: tab === id ? "white" : "#999", fontSize: 14, fontWeight: 700, cursor: "pointer", borderRadius: 8, fontFamily: "'Nunito', sans-serif" }}>{label}</button>
             ))}
           </div>
 
@@ -1118,14 +1099,14 @@ export default function GoEatApp() {
                   <div key={lbl} style={{ background: "white", border: "1.5px solid #E8F5E9", borderRadius: 22, padding: "14px 14px 12px" }}>
                     <div style={{ fontSize: 20, marginBottom: 2 }}>{icon}</div>
                     <div style={{ fontWeight: 900, fontSize: 22, fontFamily: "'Nunito', sans-serif", lineHeight: 1, color }}>{val}</div>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#999", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginTop: 4 }}>{lbl}</div>
-                    <div style={{ fontSize: 16, color: "#999", marginTop: 2 }}>{note}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#999", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginTop: 4 }}>{lbl}</div>
+                    <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>{note}</div>
                   </div>
                 ))}
               </div>
 
               {/* Disclaimer */}
-              <div style={{ margin: "0 22px 16px", background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "8px 12px", fontSize: 16, color: "#856404" }}>
+              <div style={{ margin: "0 22px 16px", background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "8px 12px", fontSize: 14, color: "#856404" }}>
                 💡 Prices and savings are <strong>estimates</strong>. Actual costs may vary by location and store.
               </div>
 
@@ -1133,17 +1114,17 @@ export default function GoEatApp() {
               <div style={{ height: 8, background: "#F7FBF7", margin: "0 0 4px" }} />
               <div style={{ padding: "6px 22px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ fontWeight: 900, fontSize: 18, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E" }}>📅 7-Day Meal Plan</div>
-                <div style={{ fontSize: 16, fontWeight: 700, background: "#E8F5E9", color: "#2E7D32", padding: "4px 10px", borderRadius: 99 }}>7 days</div>
+                <div style={{ fontSize: 14, fontWeight: 700, background: "#E8F5E9", color: "#2E7D32", padding: "4px 10px", borderRadius: 99 }}>7 days</div>
               </div>
               <div style={{ padding: "0 22px", display: "flex", flexDirection: "column" as const, gap: 10 }}>
                 {result.mealPlan?.map((day: any, i: number) => (
                   <div key={i} style={{ border: "1.5px solid #E8F5E9", borderRadius: 24, overflow: "hidden" }}>
                     <div onClick={() => setOpenDays(p => ({ ...p, [day.day]: !p[day.day] }))}
                       style={{ padding: "12px 16px", background: "#E8F5E9", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: "#1A5C2E" }}>{day.day}</div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E" }}>{day.day}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: "#388E3C" }}>{day.meals?.length} meals</div>
-                        <div style={{ fontSize: 16, color: "#388E3C" }}>{openDays[day.day] ? "▲" : "▼"}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "#388E3C" }}>{day.meals?.length} meals</div>
+                        <div style={{ fontSize: 14, color: "#388E3C" }}>{openDays[day.day] ? "▲" : "▼"}</div>
                       </div>
                     </div>
                     {openDays[day.day] && (
@@ -1160,19 +1141,19 @@ export default function GoEatApp() {
                                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)" }} />
                                   <div style={{ position: "absolute", bottom: 8, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <div style={{ fontWeight: 800, fontSize: 16, color: "white", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{m.name}</div>
-                                    <div style={{ fontSize: 16, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: mc.bg, color: mc.color }}>{m.type}</div>
+                                    <div style={{ fontWeight: 800, fontSize: 14, color: "white", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{m.name}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: mc.bg, color: mc.color }}>{m.type}</div>
                                   </div>
                                 </div>
                               )}
                               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 16px" }}>
-                                {!mealPhotos[m.name] && <div style={{ minWidth: 62, padding: "3px 8px", borderRadius: 6, fontSize: 16, fontWeight: 800, textTransform: "uppercase" as const, textAlign: "center" as const, flexShrink: 0, marginTop: 2, background: mc.bg, color: mc.color }}>{m.type}</div>}
+                                {!mealPhotos[m.name] && <div style={{ minWidth: 62, padding: "3px 8px", borderRadius: 6, fontSize: 14, fontWeight: 800, textTransform: "uppercase" as const, textAlign: "center" as const, flexShrink: 0, marginTop: 2, background: mc.bg, color: mc.color }}>{m.type}</div>}
                                 <div style={{ flex: 1 }}>
-                                  {!mealPhotos[m.name] && <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, marginBottom: 4 }}>{m.name}</div>}
-                                  {m.tip && <div style={{ fontSize: 16, color: "#999", marginTop: 2 }}>💡 {m.tip}</div>}
+                                  {!mealPhotos[m.name] && <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35, marginBottom: 4 }}>{m.name}</div>}
+                                  {m.tip && <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>💡 {m.tip}</div>}
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                                    {m.calories && <div style={{ fontSize: 16, fontWeight: 700, color: "#F97316" }}>{m.calories}</div>}
-                                    <div style={{ fontSize: 16, fontWeight: 700, color: "#2E7D32" }}>📋 Recipe →</div>
+                                    {m.calories && <div style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>{m.calories}</div>}
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: "#2E7D32" }}>📋 Recipe →</div>
                                   </div>
                                 </div>
                               </div>
@@ -1192,7 +1173,7 @@ export default function GoEatApp() {
           {tab === "shop" && (
             <div>
               <div style={{ padding: "16px 22px 10px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
                   <span style={{ color: "#2E7D32" }}>{checkedCount}/{totalItems} items</span>
                   <span style={{ color: "#999" }}>{totalItems - checkedCount} left</span>
                 </div>
@@ -1204,7 +1185,7 @@ export default function GoEatApp() {
                 {result.shoppingList?.map((cat: any, ci: number) => (
                   cat.items?.length > 0 && (
                     <div key={ci} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "#2E7D32", marginBottom: 8 }}>{cat.emoji} {cat.category}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "#2E7D32", marginBottom: 8 }}>{cat.emoji} {cat.category}</div>
                       {cat.items.map((item: any, ii: number) => {
                         const k = `${ci}-${ii}`;
                         const isChecked = checked[k];
@@ -1212,15 +1193,15 @@ export default function GoEatApp() {
                           <div key={ii} onClick={() => setChecked(p => ({ ...p, [k]: !p[k] }))}
                             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", background: "white", border: "1.5px solid #E8F5E9", borderRadius: 14, marginBottom: 7, cursor: "pointer", opacity: isChecked ? 0.5 : 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <div style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${isChecked ? "#2E7D32" : "#e5e0d8"}`, background: isChecked ? "#2E7D32" : "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "white", flexShrink: 0 }}>
+                              <div style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${isChecked ? "#2E7D32" : "#e5e0d8"}`, background: isChecked ? "#2E7D32" : "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "white", flexShrink: 0 }}>
                                 {isChecked ? "✓" : ""}
                               </div>
                               <div>
-                                <div style={{ fontSize: 16, fontWeight: 600, textDecoration: isChecked ? "line-through" : "none" }}>{item.name}</div>
-                                <div style={{ fontSize: 16, color: "#999" }}>{item.qty}</div>
+                                <div style={{ fontSize: 14, fontWeight: 600, textDecoration: isChecked ? "line-through" : "none" }}>{item.name}</div>
+                                <div style={{ fontSize: 14, color: "#999" }}>{item.qty}</div>
                               </div>
                             </div>
-                            <div style={{ fontWeight: 700, fontSize: 16, color: "#F97316" }}>{result.sym}{typeof item.price === "number" ? item.price.toFixed(2) : item.price}</div>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "#F97316" }}>{result.sym}{typeof item.price === "number" ? item.price.toFixed(2) : item.price}</div>
                           </div>
                         );
                       })}
@@ -1235,27 +1216,27 @@ export default function GoEatApp() {
           {tab === "budget" && (
             <div style={{ padding: "16px 22px" }}>
               <div style={{ background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: 22, padding: 20, color: "white", marginBottom: 16 }}>
-                <div style={{ fontSize: 16, opacity: 0.7, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 6 }}>Estimated Total</div>
+                <div style={{ fontSize: 14, opacity: 0.7, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 6 }}>Estimated Total</div>
                 <div style={{ fontWeight: 900, fontSize: 36, fontFamily: "'Nunito', sans-serif" }}>{result.sym}{typeof result.totalCost === "number" ? result.totalCost.toFixed(2) : result.totalCost}</div>
-                <div style={{ fontSize: 16, opacity: 0.6, marginTop: 4 }}>at {result.store} · family of {result.family}</div>
+                <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }}>at {result.store} · family of {result.family}</div>
               </div>
 
               {/* Estimated savings */}
               <div style={{ background: "#FFF4F0", border: "1.5px solid #F97316", borderRadius: 22, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 24 }}>💰</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: "#F97316" }}>Estimated savings: {result.sym}{typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}</div>
-                  <div style={{ fontSize: 16, color: "#999", marginTop: 2 }}>vs avg restaurant / takeout spending</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>Estimated savings: {result.sym}{typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}</div>
+                  <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>vs avg restaurant / takeout spending</div>
                 </div>
               </div>
 
               {/* Disclaimer */}
-              <div style={{ background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "10px 12px", marginBottom: 16, fontSize: 16, color: "#856404" }}>
+              <div style={{ background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "10px 12px", marginBottom: 16, fontSize: 14, color: "#856404" }}>
                 ⚠️ All prices and savings are <strong>estimates</strong>. Actual costs depend on your location, store promotions, and product availability.
               </div>
 
               <div style={{ background: "#E8F5E9", borderRadius: 22, padding: 16 }}>
-                <div style={{ fontSize: 16, color: "#1A5C2E", fontWeight: 600, lineHeight: 1.7 }}>
+                <div style={{ fontSize: 14, color: "#1A5C2E", fontWeight: 600, lineHeight: 1.7 }}>
                   💡 Est. cost per meal: ~{result.sym}{result.totalCost ? (result.totalCost / (7 * 3 * result.family)).toFixed(2) : "—"} per person<br />
                   💡 Est. cost per day: ~{result.sym}{result.totalCost ? (result.totalCost / 7).toFixed(2) : "—"} for the family<br />
                   ♻️ {result.wasteReduction?.estimatedWasteReduced || "2.1 kg"} of food waste avoided<br />
@@ -1268,7 +1249,7 @@ export default function GoEatApp() {
           {/* Impact */}
           <div style={{ height: 8, background: "#F7FBF7", margin: "4px 0" }} />
           <div style={{ margin: "0 22px 18px", background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: 22, padding: 20, color: "white" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#F87171", marginBottom: 8 }}>❤️ GoEatAI Impact</div>
+            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#F87171", marginBottom: 8 }}>❤️ GoEatAI Impact</div>
             <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 10, lineHeight: 1.3 }}>This plan makes a difference.</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {[
@@ -1277,12 +1258,12 @@ export default function GoEatApp() {
                 { val: `${result.sym}${result.wasteReduction?.moneySavedFromWaste?.toFixed?.(2) || "14.20"}`, lbl: "Extra Saved" },
               ].map(({ val, lbl }) => (
                 <div key={lbl} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 8px", textAlign: "center" as const }}>
-                  <div style={{ fontWeight: 900, fontSize: 16, color: "#81C784" }}>{val}</div>
-                  <div style={{ fontSize: 16, opacity: 0.7, marginTop: 2, fontWeight: 600 }}>{lbl}</div>
+                  <div style={{ fontWeight: 900, fontSize: 14, color: "#81C784" }}>{val}</div>
+                  <div style={{ fontSize: 14, opacity: 0.7, marginTop: 2, fontWeight: 600 }}>{lbl}</div>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>
               ❤️ <strong style={{ color: "white" }}>GoEatAI Gives Back.</strong> A portion of Premium subscriptions supports food banks worldwide.
             </div>
           </div>
@@ -1290,11 +1271,11 @@ export default function GoEatApp() {
           <div style={{ padding: "4px 22px 32px", display: "flex", flexDirection: "column", gap: 10 }}>
             {/* Save Plan Button */}
             <button onClick={() => { setSavePlanName(""); setShowSaveModal(true); }}
-              style={{ width: "100%", padding: 14, background: "#E8F5E9", border: "2px solid #2E7D32", borderRadius: 22, fontWeight: 800, fontSize: 16, color: "#1A5C2E", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+              style={{ width: "100%", padding: 14, background: "#E8F5E9", border: "2px solid #2E7D32", borderRadius: 22, fontWeight: 800, fontSize: 14, color: "#1A5C2E", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
               📁 Save This Plan
             </button>
             <button onClick={() => { setScreen("setup"); setResult(null); setScanImage(null); setScannedItems([]); try { localStorage.removeItem("goeatai_last_result"); } catch {} }}
-              style={{ width: "100%", padding: 14, background: "white", border: "2px solid #e5e0d8", borderRadius: 22, fontWeight: 800, fontSize: 16, color: "#999", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+              style={{ width: "100%", padding: 14, background: "white", border: "2px solid #e5e0d8", borderRadius: 22, fontWeight: 800, fontSize: 14, color: "#999", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
               ↩ Create New Meal Plan
             </button>
           </div>
