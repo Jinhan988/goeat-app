@@ -311,37 +311,19 @@ export default function GoEatApp() {
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           animation: "fadeIn 0.5s ease",
         }}>
-          {/* Logo mark */}
-          <div style={{
-            width: 120, height: 120, borderRadius: 32,
-            background: "linear-gradient(135deg,#E8F5E9,#C8E6C9)",
-            border: "3px solid #C8E6C9",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 64, marginBottom: 24,
-            boxShadow: "0 8px 32px rgba(26,92,46,0.15)",
+          {/* Logo image */}
+          <img src="/logo.webp" alt="GoEat AI" style={{
+            width: 180, height: 180, objectFit: "contain",
+            marginBottom: 16,
             animation: "popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s both"
-          }}>🛒</div>
-
-          {/* Logo text */}
-          <div style={{
-            fontFamily: "'Nunito', sans-serif", fontWeight: 900, fontSize: 48, lineHeight: 1,
-            animation: "fadeUp 0.6s ease 0.5s both"
-          }}>
-            <span style={{ color: "#1A5C2E" }}>Go</span>
-            <span style={{ color: "#F97316" }}>Eat</span>
-            <span style={{
-              fontSize: 14, background: "#4CAF50", color: "white",
-              fontWeight: 800, padding: "3px 8px", borderRadius: 8,
-              marginLeft: 6, verticalAlign: "middle"
-            }}>AI</span>
-          </div>
+          }} />
 
           {/* Tagline */}
           <div style={{
-            fontSize: 14, color: "#888", fontWeight: 600, marginTop: 12,
+            fontSize: 14, color: "#888", fontWeight: 600, marginTop: 8,
             fontFamily: "'Nunito Sans', sans-serif",
-            animation: "fadeUp 0.6s ease 0.7s both"
-          }}>Smart meal plans. Smarter savings.</div>
+            animation: "fadeUp 0.6s ease 0.5s both"
+          }}>Less thinking. Less waste. Better eating.</div>
 
           {/* Loading dots */}
           <div style={{
@@ -369,7 +351,7 @@ export default function GoEatApp() {
       <div style={{ background: "white", padding: "14px 20px 12px", position: "sticky", top: 0, zIndex: 50, borderBottom: "2px solid #E8F5E9", boxShadow: "0 2px 12px rgba(26,92,46,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg,#E8F5E9,#C8E6C9)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, border: "2px solid #C8E6C9" }}>🛒</div>
+            <img src="/logo.webp" alt="GoEat AI" style={{ width: 44, height: 44, borderRadius: 12, objectFit: "contain" }} />
             <div>
               <div style={{ fontWeight: 900, fontSize: 24, lineHeight: 1, fontFamily: "'Nunito', sans-serif" }}>
                 <span style={{ color: "#1A5C2E" }}>Go</span><span style={{ color: "#F97316" }}>Eat</span>
@@ -724,11 +706,62 @@ export default function GoEatApp() {
           {scanImage && (
             <div style={{ margin: "16px 22px 0" }}>
               <div style={{ borderRadius: 24, overflow: "hidden", border: "2px solid #388E3C", position: "relative" }}>
-                <img src={scanImage} alt="scan" style={{ width: "100%", maxHeight: 160, objectFit: "cover", display: "block" }} />
+                <img src={scanImage} alt="scan" style={{ width: "100%", maxHeight: 220, objectFit: "cover", display: "block" }} />
+
+                {/* Loading overlay */}
                 {scanLoading && (
                   <div style={{ position: "absolute", inset: 0, background: "rgba(26,92,46,0.80)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
                     <div style={{ width: 32, height: 32, border: "3px solid rgba(255,255,255,0.3)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                     <div style={{ color: "white", fontSize: 14, fontWeight: 700 }}>Analyzing your {scanMode === "receipt" ? "receipt" : "fridge"}...</div>
+                  </div>
+                )}
+
+                {/* Tag overlay on photo — like AI RepairBuddy style! */}
+                {!scanLoading && scannedItems.length > 0 && (
+                  <div style={{ position: "absolute", inset: 0, padding: 12 }}>
+                    {scannedItems.slice(0, 8).map((item, i) => {
+                      const positions = [
+                        { top: "8%", left: "8%" },
+                        { top: "8%", right: "8%" },
+                        { top: "30%", left: "5%" },
+                        { top: "30%", right: "5%" },
+                        { top: "55%", left: "8%" },
+                        { top: "55%", right: "8%" },
+                        { top: "75%", left: "20%" },
+                        { top: "75%", right: "20%" },
+                      ];
+                      const pos = positions[i] || { top: `${10 + i * 12}%`, left: "8%" };
+                      return (
+                        <div key={i} style={{
+                          position: "absolute",
+                          ...pos,
+                          background: "#1A5C2E",
+                          color: "white",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          padding: "4px 10px",
+                          borderRadius: 99,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                          animation: `popIn 0.3s ease ${i * 0.1}s both`,
+                          whiteSpace: "nowrap" as const,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4
+                        }}>
+                          ✓ {item}
+                        </div>
+                      );
+                    })}
+                    {/* Count badge */}
+                    <div style={{
+                      position: "absolute", bottom: 10, right: 10,
+                      background: "#F97316", color: "white",
+                      fontSize: 12, fontWeight: 800,
+                      padding: "4px 10px", borderRadius: 99,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                    }}>
+                      {scannedItems.length} found ✓
+                    </div>
                   </div>
                 )}
               </div>
