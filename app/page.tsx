@@ -31,7 +31,7 @@ const MERITS = [
 ];
 
 export default function GoEatApp() {
-  const [screen, setScreen] = useState<"splash"|"splash"|"loading"|"results">("splash");
+  const [screen, setScreen] = useState<"splash"|"setup"|"loading"|"results">("splash");
   const [country, setCountry] = useState("CA");
   const [family, setFamily] = useState(4);
   const [budget, setBudget] = useState("");
