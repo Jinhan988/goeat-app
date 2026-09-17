@@ -31,7 +31,7 @@ const MERITS = [
 ];
 
 export default function GoEatApp() {
-  const [screen, setScreen] = useState<"splash"|"setup"|"loading"|"results">("splash");
+  const [screen, setScreen] = useState<"splash"|"splash"|"loading"|"results">("splash");
   const [country, setCountry] = useState("CA");
   const [family, setFamily] = useState(4);
   const [budget, setBudget] = useState("");
@@ -82,13 +82,8 @@ export default function GoEatApp() {
     try {
       const saved = localStorage.getItem("goeatai_saved_plans");
       if (saved) setSavedPlans(JSON.parse(saved));
-      // Also restore last result
-      const last = localStorage.getItem("goeatai_last_result");
-      if (last) {
-        const parsed = JSON.parse(last);
-        setResult(parsed);
-        setScreen("results");
-      }
+
+ 
       const profiles = localStorage.getItem("goeatai_family_profiles");
       if (profiles) setFamilyProfiles(JSON.parse(profiles));
     } catch {}
