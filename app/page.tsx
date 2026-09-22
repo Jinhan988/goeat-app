@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 
 const CA_STORES = ["Costco","No Frills","Loblaws","Sobeys","Metro","FreshCo","Food Basics","Walmart Canada","T&T Supermarket"];
-const US_STORES = ["Costco","Walmart","Kroger","Whole Foods","Trader Joe's","Aldi","Target","Safeway","Publix"];
+const US_STORES = ["Costco","Walmart","Kroger","Whole Foods","Trader Joe's","Aldi","Target","Safeway","Publix","H-E-B","Meijer","Sprouts","Wegmans"];
 
 const DIETS = [
   {id:"No Restriction",icon:"🍽️"},{id:"High Protein",icon:"💪"},
