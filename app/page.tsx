@@ -67,6 +67,7 @@ export default function GoEatApp() {
   const fridgeRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLInputElement>(null);
   const manualRef = useRef<HTMLDivElement>(null);
+  const scanPreviewRef = useRef<HTMLDivElement>(null);
 
   const sym = country === "CA" ? "CA$" : "$";
   const stores = country === "CA" ? CA_STORES : US_STORES;
@@ -88,6 +89,14 @@ export default function GoEatApp() {
       if (profiles) setFamilyProfiles(JSON.parse(profiles));
     } catch {}
   }, []);
+
+  // Auto-scroll to the scan preview as soon as a photo is picked,
+  // so the user sees the scanned screen immediately without scrolling.
+  useEffect(() => {
+    if (scanImage) {
+      setTimeout(() => scanPreviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    }
+  }, [scanImage]);
 
   function savePlan(planResult: any, planName?: string) {
     const name = planName || `Plan ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
@@ -345,7 +354,7 @@ export default function GoEatApp() {
       {/* HEADER */}
       <div style={{ background: "white", padding: "14px 20px 12px", position: "sticky", top: 0, zIndex: 50, borderBottom: "2px solid #E8F5E9", boxShadow: "0 2px 12px rgba(26,92,46,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div onClick={() => setScreen("setup")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
             <img src="/logo.webp" alt="GoEat AI" style={{ width: 44, height: 44, borderRadius: 12, objectFit: "contain" }} />
             <div>
               <div style={{ fontWeight: 900, fontSize: 24, lineHeight: 1, fontFamily: "'Nunito', sans-serif" }}>
@@ -699,7 +708,7 @@ export default function GoEatApp() {
 
           {/* Scan preview */}
           {scanImage && (
-            <div style={{ margin: "16px 22px 0" }}>
+            <div ref={scanPreviewRef} style={{ margin: "16px 22px 0" }}>
               <div style={{ borderRadius: 24, overflow: "hidden", border: "2px solid #388E3C", position: "relative" }}>
                 <img src={scanImage} alt="scan" style={{ width: "100%", maxHeight: 220, objectFit: "cover", display: "block" }} />
 
