@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { track } from "@vercel/analytics";
 
 const CA_STORES = ["Costco","No Frills","Loblaws","Sobeys","Metro","FreshCo","Food Basics","Walmart Canada","T&T Supermarket"];
 const US_STORES = ["Costco","Walmart","Kroger","Whole Foods","Trader Joe's","Aldi","Target","Safeway","Publix","H-E-B","Meijer","Sprouts","Wegmans"];
@@ -45,6 +46,8 @@ export default function GoEatApp() {
   const [scanLoading, setScanLoading] = useState(false);
   const [scannedItems, setScannedItems] = useState<string[]>([]);
   const [uncertainItems, setUncertainItems] = useState<string[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
   const [result, setResult] = useState<any>(null);
   const [tab, setTab] = useState("plan");
   const [openDays, setOpenDays] = useState<Record<string,boolean>>({"Monday":true});
@@ -76,6 +79,11 @@ export default function GoEatApp() {
   useEffect(() => {
     const t = setTimeout(() => setScreen("setup"), 2800);
     return () => clearTimeout(t);
+  }, []);
+
+  // Track app open once on mount
+  useEffect(() => {
+    track("app_view");
   }, []);
 
   // Load saved plans on mount
@@ -131,6 +139,7 @@ export default function GoEatApp() {
     setUncertainItems([]);
     setScanLoading(true);
     setShowManual(true);
+    track("scan_started", { mode });
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -148,14 +157,35 @@ export default function GoEatApp() {
         const data = await res.json();
         setScannedItems(data.items || []);
         setUncertainItems(data.uncertain || []);
+        track("scan_completed", {
+          mode,
+          confirmedCount: data.items?.length || 0,
+          uncertainCount: data.uncertain?.length || 0,
+        });
       } catch {
         setScannedItems(mode === "receipt"
           ? ["Chicken breast","Brown rice","Broccoli","Eggs","Yogurt","Spinach","Tomatoes"]
           : ["Eggs","Milk","Cheese","Bell peppers","Carrots","Butter","Onions"]);
+        track("scan_failed", { mode });
       }
       setScanLoading(false);
     };
     reader.readAsDataURL(file);
+  }
+
+  function startEditItem(i: number, currentValue: string) {
+    setEditingIndex(i);
+    setEditValue(currentValue);
+  }
+
+  function commitEditItem(i: number) {
+    setScannedItems(p => {
+      const original = p[i];
+      const next = editValue.trim() || original;
+      if (next !== original) track("scan_item_corrected", { from: original, to: next });
+      return p.map((x, j) => (j === i ? next : x));
+    });
+    setEditingIndex(null);
   }
 
   async function generate() {
@@ -163,6 +193,12 @@ export default function GoEatApp() {
     setError("");
     setScreen("loading");
     setLoadStep(0);
+    track("plan_generate_started", {
+      family,
+      hasScannedItems: scannedItems.length > 0,
+      scannedCount: scannedItems.length,
+      country,
+    });
 
     const steps = [
       setTimeout(() => setLoadStep(1), 800),
@@ -191,11 +227,18 @@ export default function GoEatApp() {
       setTab("plan");
       // Auto-save last result
       try { localStorage.setItem("goeatai_last_result", JSON.stringify(finalResult)); } catch {}
+      track("plan_generated", {
+        family,
+        store,
+        country,
+        usedScannedItems: scannedItems.length > 0,
+      });
       setTimeout(() => setScreen("results"), 300);
     } catch {
       steps.forEach(clearTimeout);
       setError("Failed to generate meal plan. Please try again.");
       setScreen("setup");
+      track("plan_generate_failed");
     }
   }
 
@@ -790,7 +833,22 @@ export default function GoEatApp() {
                   <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 12 }}>
                     {scannedItems.map((item, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", color: "#1A5C2E", fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 99, border: "1.5px solid #C8E6C9" }}>
-                        {item}
+                        {editingIndex === i ? (
+                          <input
+                            autoFocus
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") commitEditItem(i);
+                              if (e.key === "Escape") setEditingIndex(null);
+                            }}
+                            onBlur={() => commitEditItem(i)}
+                            style={{ border: "none", outline: "none", background: "white", borderRadius: 8, padding: "2px 6px", fontSize: 14, fontWeight: 700, color: "#1A5C2E", width: Math.max(70, editValue.length * 9), fontFamily: "'Nunito', sans-serif" }}
+                          />
+                        ) : (
+                          <span style={{ cursor: "pointer" }} onClick={() => startEditItem(i, item)}>{item}</span>
+                        )}
+                        <span style={{ cursor: "pointer", opacity: 0.55, fontSize: 12 }} onClick={() => startEditItem(i, item)} title="Edit">✏️</span>
                         <span style={{ cursor: "pointer", opacity: 0.6 }} onClick={() => setScannedItems(p => p.filter((_, j) => j !== i))}>×</span>
                       </div>
                     ))}
