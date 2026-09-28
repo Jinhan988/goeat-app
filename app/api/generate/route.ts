@@ -111,28 +111,58 @@ Return ONLY valid JSON (no markdown):
     "moneySavedFromWaste": 14.20
   }
 }
-Rules:
+HARD BUDGET RULE:
+- The sum of every item's "price" in shoppingList MUST add up to between ${sym}${Math.round(budget * 0.85)} and ${sym}${budget}. Not more than ${sym}${budget}. This is a strict limit, not a suggestion.
+- Before you output the JSON, manually add up all the prices you're about to write. If the sum is over ${sym}${budget}, remove items, shrink quantities, or swap in cheaper staples/store-brand equivalents until it fits. Recheck the sum again after adjusting.
+- To stay in budget: favor larger economy packs (better $/unit), in-season produce, and simple staples over premium or specialty items. Fewer, well-chosen items are better than many small ones.
+
+Other rules:
 - All 7 days Mon-Sun, 3 meals each.
 - The shopping list contains ONLY what the user still needs to buy.
-- Plan a realistic, economical week. Keep the shopping list total within ${sym}${budget}, but do NOT pad it to reach the budget. Spending less than the budget is fine.
 - Each item "price" is one number: the realistic ${store} price for the full quantity listed.
 - Follow ${diet} diet.`;
 
-    const result = await callClaude(prompt, 4500);
+    let result = await callClaude(prompt, 4500);
 
     // ---------- Compute totals in code (not by the AI) ----------
-    const list = Array.isArray(result.shoppingList) ? result.shoppingList : [];
-    let total = 0;
-    for (const cat of list) {
-      if (!Array.isArray(cat.items)) cat.items = [];
-      for (const item of cat.items) {
-        const price = Number(String(item.price ?? "").replace(/[^0-9.]/g, "")) || 0;
-        item.price = Math.round(price * 100) / 100;
-        total += item.price;
+    function sumList(r: any) {
+      const list = Array.isArray(r.shoppingList) ? r.shoppingList : [];
+      let total = 0;
+      for (const cat of list) {
+        if (!Array.isArray(cat.items)) cat.items = [];
+        for (const item of cat.items) {
+          const price = Number(String(item.price ?? "").replace(/[^0-9.]/g, "")) || 0;
+          item.price = Math.round(price * 100) / 100;
+          total += item.price;
+        }
+      }
+      r.shoppingList = list;
+      return Math.round(total * 100) / 100;
+    }
+
+    let total = sumList(result);
+
+    // Safety net: if the model still blew past budget, ask it once to trim
+    // the exact list down rather than re-generating from scratch.
+    const budgetNum = Number(budget) || 0;
+    if (budgetNum > 0 && total > budgetNum) {
+      const trimPrompt = `This shopping list totals ${sym}${total}, which is over the ${sym}${budgetNum} budget.
+Shopping list JSON: ${JSON.stringify(result.shoppingList)}
+
+Return ONLY the corrected "shoppingList" as valid JSON (same shape, no markdown), edited so the sum of all prices is at or under ${sym}${budgetNum}. Reduce quantities, remove the least essential items, or substitute cheaper alternatives. Keep it realistic for ${store}.
+{ "shoppingList": [ ... ] }`;
+      try {
+        const trimmed = await callClaude(trimPrompt, 3000);
+        if (Array.isArray(trimmed.shoppingList)) {
+          result.shoppingList = trimmed.shoppingList;
+          total = sumList(result);
+        }
+      } catch {
+        // If the trim call fails, fall back to the original list/total as-is.
       }
     }
-    result.shoppingList = list;
-    result.totalCost = Math.round(total * 100) / 100;
+
+    result.totalCost = total;
 
     const perDinnerOut = country === "CA" ? DINNER_OUT_PER_PERSON.CA : DINNER_OUT_PER_PERSON.US;
     const eatingOutDinners = Number(family || 1) * 7 * perDinnerOut;
