@@ -511,6 +511,11 @@ export default function GoEatApp() {
                   ))}
                 </div>
               )}
+              <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(recipe.name + " recipe")}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 16px", background: "#FF0000", color: "white", borderRadius: 99, fontWeight: 800, fontSize: 14, textDecoration: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>
+                ▶ Watch on YouTube
+              </a>
             </div>
 
             {recipeLoading ? (
@@ -557,13 +562,6 @@ export default function GoEatApp() {
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#1A5C2E" }}>🔥 Calories per serving</span>
                   <span style={{ fontWeight: 900, fontSize: 14, color: "#F97316" }}>{recipe.data.calories}</span>
                 </div>
-
-                {/* YouTube */}
-                <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(recipe.name + " recipe")}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: 13, background: "#FF0000", color: "white", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 14, cursor: "pointer", textDecoration: "none" }}>
-                  ▶ Watch on YouTube
-                </a>
               </div>
             ) : (
               <div style={{ padding: "30px 22px", textAlign: "center", color: "#999" }}>Failed to load recipe. Please try again.</div>
