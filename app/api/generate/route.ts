@@ -7,11 +7,16 @@ export const maxDuration = 60;
 // To go back to higher quality, change to "claude-sonnet-4-5".
 const MODEL = "claude-haiku-4-5-20251001";
 
-// Assumption behind "Estimated Savings":
-// roughly what ONE restaurant/takeout dinner costs per person.
-// Savings = (family x 7 dinners out) - (this week's grocery total).
-// Tune these two numbers if you want the estimate more or less conservative.
-const DINNER_OUT_PER_PERSON = { US: 12, CA: 14 };
+// "Estimated Savings" = unspent budget (budget - actual grocery total).
+// Simple and honest: what you didn't have to spend out of your weekly budget.
+
+// Reference prices for common staples, used to anchor the AI so the same
+// item doesn't cost wildly different amounts across different generations.
+// Rough national averages, in local currency. Adjust as you get real data.
+const PRICE_ANCHORS: Record<string, string> = {
+  CA: `Eggs (dozen) ~CA$4.50, Milk (2L) ~CA$4.20, Chicken breast (1kg) ~CA$11-14, Ground beef (1kg) ~CA$10-13, Rice (2kg) ~CA$6, Bread (loaf) ~CA$3.50, Bananas (1kg) ~CA$1.70, Butter (454g) ~CA$5.50, Cheddar cheese (500g) ~CA$6.50, Pasta (500g) ~CA$2, Onions (1kg) ~CA$2.50, Potatoes (5lb bag) ~CA$5, Canned beans ~CA$1.80, Yogurt (750g) ~CA$5, Frozen vegetables (1kg) ~CA$4.50`,
+  US: `Eggs (dozen) ~$3.50, Milk (1 gal) ~$3.80, Chicken breast (1lb) ~$4-5, Ground beef (1lb) ~$5-6, Rice (2lb) ~$3, Bread (loaf) ~$3, Bananas (1lb) ~$0.60, Butter (1lb) ~$4.50, Cheddar cheese (8oz) ~$3.50, Pasta (1lb) ~$1.50, Onions (1lb) ~$1, Potatoes (5lb bag) ~$4, Canned beans ~$1.20, Yogurt (32oz) ~$4.50, Frozen vegetables (1lb) ~$2.50`,
+};
 
 async function callClaude(prompt: string, maxTokens: number) {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -119,8 +124,14 @@ HARD BUDGET RULE:
 Other rules:
 - All 7 days Mon-Sun, 3 meals each.
 - The shopping list contains ONLY what the user still needs to buy.
-- Each item "price" is one number: the realistic ${store} price for the full quantity listed.
-- Follow ${diet} diet.`;
+- No duplicate items: each distinct product should appear only once in the whole list.
+- Follow ${diet} diet.
+
+PER-ITEM PRICING (for accuracy and consistency):
+- Reference prices for this country, to keep pricing realistic and consistent across different plans (adjust up/down for ${store} specifically, and for the exact quantity you list): ${PRICE_ANCHORS[country] || PRICE_ANCHORS.US}
+- Price every item as if you were reading real shelf tags at ${store}. Use realistic package sizes actually sold there (e.g. "2 kg", "1 dozen", "454 g") rather than odd amounts.
+- Prices should look like real prices (e.g. 6.49, 11.29) — avoid suspiciously flat numbers like 5.00, 10.00, 20.00 for everything.
+- Every item price must be greater than 0.`;
 
     let result = await callClaude(prompt, 4500);
 
@@ -130,11 +141,17 @@ Other rules:
       let total = 0;
       for (const cat of list) {
         if (!Array.isArray(cat.items)) cat.items = [];
-        for (const item of cat.items) {
+        // Drop items with no real price (garbage output) and de-dupe by name.
+        const seen = new Set<string>();
+        cat.items = cat.items.filter((item: any) => {
           const price = Number(String(item.price ?? "").replace(/[^0-9.]/g, "")) || 0;
           item.price = Math.round(price * 100) / 100;
-          total += item.price;
-        }
+          const key = String(item.name || "").trim().toLowerCase();
+          if (item.price <= 0 || !key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        for (const item of cat.items) total += item.price;
       }
       r.shoppingList = list;
       return Math.round(total * 100) / 100;
@@ -164,9 +181,8 @@ Return ONLY the corrected "shoppingList" as valid JSON (same shape, no markdown)
 
     result.totalCost = total;
 
-    const perDinnerOut = country === "CA" ? DINNER_OUT_PER_PERSON.CA : DINNER_OUT_PER_PERSON.US;
-    const eatingOutDinners = Number(family || 1) * 7 * perDinnerOut;
-    result.savings = Math.max(0, Math.round((eatingOutDinners - result.totalCost) * 100) / 100);
+    const budgetForSavings = Number(budget) || 0;
+    result.savings = Math.max(0, Math.round((budgetForSavings - result.totalCost) * 100) / 100);
 
     return NextResponse.json(result);
   } catch (error) {
