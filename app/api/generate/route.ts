@@ -125,7 +125,7 @@ Other rules:
     let result = await callClaude(prompt, 4500);
 
     // ---------- Compute totals in code (not by the AI) ----------
-    function sumList(r: any) {
+    const sumList = (r: any) => {
       const list = Array.isArray(r.shoppingList) ? r.shoppingList : [];
       let total = 0;
       for (const cat of list) {
@@ -138,7 +138,7 @@ Other rules:
       }
       r.shoppingList = list;
       return Math.round(total * 100) / 100;
-    }
+    };
 
     let total = sumList(result);
 
