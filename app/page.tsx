@@ -1185,7 +1185,7 @@ export default function GoEatApp() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "16px 22px" }}>
                 {[
                   { icon: "🛒", val: `${result.sym}${typeof result.totalCost === "number" ? result.totalCost.toFixed(2) : result.totalCost}`, lbl: "Est. Grocery Cost", note: `of ${result.sym}${result.budget} budget`, color: "#2E7D32" },
-                  { icon: "💰", val: `${result.sym}${typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}`, lbl: "Estimated Savings", note: "vs eating out / avg spend", color: "#F97316" },
+                  { icon: "💰", val: `${result.sym}${typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}`, lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
                   { icon: "♻️", val: result.wasteReduction?.estimatedWasteReduced || "2.1 kg", lbl: "Waste Reduced", note: result.wasteReduction?.co2Saved || "", color: "#457b9d" },
                   { icon: "🍱", val: result.wasteReduction?.mealsFromLeftovers || "5", lbl: "Leftover Meals", note: "planned this week", color: "#e63946" },
                 ].map(({ icon, val, lbl, note, color }) => (
@@ -1319,7 +1319,7 @@ export default function GoEatApp() {
                 <span style={{ fontSize: 24 }}>💰</span>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>Estimated savings: {result.sym}{typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}</div>
-                  <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>vs avg restaurant / takeout spending</div>
+                  <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>left in your {result.sym}{result.budget} weekly budget</div>
                 </div>
               </div>
 
