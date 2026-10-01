@@ -323,10 +323,11 @@ export default function GoEatApp() {
     setCravingLoading(false);
   }
 
-  async function fetchMealPhoto(mealName: string): Promise<string> {
+  async function fetchMealPhoto(mealName: string, photoQuery?: string): Promise<string> {
     if (mealPhotos[mealName]) return mealPhotos[mealName];
     try {
-      const query = encodeURIComponent(mealName + " food dish");
+      // Prefer the short AI-written search phrase; fall back to the meal name
+      const query = encodeURIComponent((photoQuery || mealName) + " food");
       const res = await fetch(
         `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`,
         { headers: { Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_KEY || "demo"}` } }
@@ -351,7 +352,7 @@ export default function GoEatApp() {
     if (!result?.mealPlan) return;
     result.mealPlan.forEach((day: any) => {
       day.meals?.forEach((m: any) => {
-        fetchMealPhoto(m.name);
+        fetchMealPhoto(m.name, m.photoQuery);
       });
     });
   }, [result]);
