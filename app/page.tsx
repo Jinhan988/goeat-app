@@ -75,6 +75,8 @@ export default function GoEatApp() {
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
   const [mealPhotos, setMealPhotos] = useState<Record<string,string>>({});
+  const [mealCredits, setMealCredits] = useState<Record<string,{ name: string; link: string }>>({});
+  const [zoomMeal, setZoomMeal] = useState<any>(null);
   const fridgeRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLInputElement>(null);
   const manualRef = useRef<HTMLDivElement>(null);
@@ -330,10 +332,18 @@ export default function GoEatApp() {
         { headers: { Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_KEY || "demo"}` } }
       );
       const data = await res.json();
-      const url = data.results?.[0]?.urls?.small || "";
+      const first = data.results?.[0];
+      const url = first?.urls?.small || "";
       if (url) setMealPhotos(p => ({ ...p, [mealName]: url }));
+      if (first?.user?.name) setMealCredits(p => ({ ...p, [mealName]: { name: first.user.name, link: first.user.links?.html || "https://unsplash.com" } }));
       return url;
     } catch { return ""; }
+  }
+
+  // Unsplash URLs accept a width param — request sharper versions when needed
+  function sizedPhoto(url: string, w: number) {
+    if (!url) return url;
+    return /[?&]w=\d+/.test(url) ? url.replace(/([?&])w=\d+/, `$1w=${w}`) : `${url}${url.includes("?") ? "&" : "?"}w=${w}`;
   }
 
   // Prefetch photos when result loads
@@ -497,6 +507,44 @@ export default function GoEatApp() {
               style={{ width: "100%", padding: 12, background: "none", border: "none", color: "#999", fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* PHOTO ZOOM */}
+      {zoomMeal && (
+        <div onClick={() => setZoomMeal(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 310, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 16px" }}>
+          <button onClick={() => setZoomMeal(null)} aria-label="Close"
+            style={{ position: "absolute", top: "max(16px, env(safe-area-inset-top))", right: 16, width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.15)", color: "white", fontSize: 22, cursor: "pointer" }}>
+            ✕
+          </button>
+
+          <img src={sizedPhoto(mealPhotos[zoomMeal.name], 1080)} alt={zoomMeal.name}
+            onClick={e => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 600, maxHeight: "62vh", objectFit: "contain", borderRadius: 16, display: "block" }} />
+
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 600, marginTop: 16, color: "white", fontFamily: "'Nunito', sans-serif" }}>
+            <div style={{ fontWeight: 900, fontSize: 22, lineHeight: 1.25 }}>{zoomMeal.name}</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6, fontSize: 15 }}>
+              <span style={{ fontWeight: 700, opacity: 0.85 }}>{zoomMeal.type}</span>
+              {zoomMeal.calories && <span style={{ fontWeight: 800, color: "#FDBA74" }}>{zoomMeal.calories}</span>}
+            </div>
+
+            <button onClick={() => {
+              const meal = zoomMeal;
+              setZoomMeal(null);
+              openRecipe(meal.name, meal.diet, meal.cuisine);
+            }}
+              style={{ width: "100%", minHeight: 52, marginTop: 16, border: "none", borderRadius: 99, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 800, fontSize: 17, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+              📋 See Recipe
+            </button>
+
+            {mealCredits[zoomMeal.name] && (
+              <div style={{ marginTop: 12, fontSize: 12, opacity: 0.6, textAlign: "center" }}>
+                Photo by <a href={`${mealCredits[zoomMeal.name].link}?utm_source=goeat_ai&utm_medium=referral`} target="_blank" rel="noopener noreferrer" style={{ color: "white" }}>{mealCredits[zoomMeal.name].name}</a> on <a href="https://unsplash.com/?utm_source=goeat_ai&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: "white" }}>Unsplash</a>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1248,9 +1296,16 @@ export default function GoEatApp() {
                               style={{ borderBottom: j < day.meals.length - 1 ? "1px solid #E8F5E9" : "none", cursor: "pointer" }}>
                               {/* Food photo */}
                               {mealPhotos[m.name] && (
-                                <div style={{ position: "relative", overflow: "hidden", height: 110 }}>
-                                  <img src={mealPhotos[m.name]} alt={m.name}
+                                <div
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    track("photo_zoomed");
+                                    setZoomMeal({ ...m, diet: result.diet, cuisine: result.cuisine });
+                                  }}
+                                  style={{ position: "relative", overflow: "hidden", height: 110, cursor: "zoom-in" }}>
+                                  <img src={sizedPhoto(mealPhotos[m.name], 800)} alt={m.name}
                                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                                  <div aria-hidden="true" style={{ position: "absolute", top: 8, right: 8, width: 30, height: 30, borderRadius: "50%", background: "rgba(0,0,0,0.45)", color: "white", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1 }}>🔍</div>
                                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)" }} />
                                   <div style={{ position: "absolute", bottom: 8, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <div style={{ fontWeight: 800, fontSize: 14, color: "white", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{m.name}</div>
