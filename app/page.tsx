@@ -660,54 +660,40 @@ export default function GoEatApp() {
             </div>
 
             {/* Headline */}
-            <div style={{ fontWeight: 900, fontSize: 28, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E", lineHeight: 1.15, marginBottom: 10 }}>
-              Before you go grocery shopping...<br/>
-              <span style={{ color: "#F97316" }}>scan your fridge first. 📸</span>
+            <div style={{ fontWeight: 900, fontSize: 32, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E", lineHeight: 1.12, marginBottom: 10, position: "relative" }}>
+              What&apos;s for dinner this week?
             </div>
 
-            <div style={{ fontSize: 14, color: "#555", lineHeight: 1.7, marginBottom: 18 }}>
-              GoEat AI turns what you already have into a personalized 7-day meal plan — with calories, shopping costs, and estimated savings.
+            <div style={{ fontSize: 17, color: "#555", lineHeight: 1.5, marginBottom: 24, position: "relative" }}>
+              Scan your fridge and let GoEat plan the rest.
             </div>
 
-            {/* 4 problems solved */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
-              {[
-                { emoji: "🤔", text: "What to eat?" },
-                { emoji: "🛒", text: "What to buy?" },
-                { emoji: "💰", text: "How much to spend?" },
-                { emoji: "🗑️", text: "Stop wasting food" },
-              ].map(({ emoji, text }) => (
-                <div key={text} style={{ background: "white", borderRadius: 16, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, border: "1.5px solid #C8E6C9", boxShadow: "0 2px 6px rgba(26,92,46,0.06)" }}>
-                  <span style={{ fontSize: 18 }}>{emoji}</span>
-                  <span style={{ fontSize: 14, color: "#1A5C2E", fontWeight: 700 }}>{text}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Scan buttons */}
+            {/* Main CTA */}
             <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "fridge")} />
             <button onClick={() => fridgeRef.current?.click()}
-              style={{ width: "100%", padding: 16, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 6px 20px rgba(249,115,22,0.35)", marginBottom: 12, fontFamily: "'Nunito', sans-serif" }}>
-              <span style={{ fontSize: 22 }}>🧊</span> Scan My Fridge
+              style={{ width: "100%", minHeight: 60, padding: 16, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 19, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 6px 20px rgba(249,115,22,0.35)", fontFamily: "'Nunito', sans-serif", position: "relative" }}>
+              <span style={{ fontSize: 22 }}>📸</span> Scan My Fridge
             </button>
 
-            <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "receipt")} />
-            <div onClick={() => receiptRef.current?.click()}
-              style={{ textAlign: "center", fontSize: 14, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>
-              🧾 Or scan your grocery receipt
-            </div>
+            <div style={{ textAlign: "center", fontSize: 14, color: "#888", margin: "10px 0", position: "relative" }}>or</div>
 
-            {/* Set up manually — right here! */}
-            <div onClick={() => {
+            {/* Set up manually — fallback */}
+            <button onClick={() => {
+              if (!showManual) track("manual_opened");
               setShowManual(v => !v);
               setTimeout(() => manualRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
             }}
-              style={{ marginTop: 14, textAlign: "center", padding: "11px 14px", border: "1.5px solid #C8E6C9", borderRadius: 99, cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#1A5C2E", background: "white", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              ⚙️ Set up manually <span style={{ fontSize: 14, color: "#999" }}>(family size, budget, store...)</span>
-              <span style={{ fontSize: 14, color: "#999" }}>{showManual ? "▲" : "▼"}</span>
-            </div>
+              style={{ width: "100%", minHeight: 52, padding: "12px 14px", border: "2px solid #C8E6C9", borderRadius: 99, cursor: "pointer", fontSize: 17, fontWeight: 800, color: "#1A5C2E", background: "white", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "'Nunito', sans-serif", position: "relative" }}>
+              ⚙️ Set Up Manually
+              <span style={{ fontSize: 13, color: "#999" }}>{showManual ? "▲" : "▼"}</span>
+            </button>
 
-            <div style={{ textAlign: "center", fontSize: 14, color: "#999", marginTop: 8 }}>Powered by Claude AI · US & Canada</div>
+            {/* Small feature line */}
+            <div style={{ display: "flex", flexWrap: "wrap" as const, justifyContent: "center", gap: 6, marginTop: 20, position: "relative" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 11px", borderRadius: 99, background: "#DCEDC8", color: "#1A5C2E" }}>7-day meal plan</span>
+              <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 11px", borderRadius: 99, background: "#FFE8D6", color: "#C2560A" }}>Shopping list</span>
+              <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 11px", borderRadius: 99, background: "white", color: "#1A5C2E", border: "1.5px solid #C8E6C9" }}>Estimated cost</span>
+            </div>
           </div>
 
           {/* 5 Merits */}
@@ -730,7 +716,23 @@ export default function GoEatApp() {
 
           {/* Why GoEat AI */}
           <div style={{ margin: "20px 22px 0", background: "#F1F8E9", border: "1.5px solid #C8E6C9", borderRadius: 24, padding: "16px 18px" }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 8 }}>✨ Why GoEat AI?</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 10 }}>✨ Why GoEat AI?</div>
+
+            {/* 4 problems solved (moved from hero) */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              {[
+                { emoji: "🤔", text: "What to eat?" },
+                { emoji: "🛒", text: "What to buy?" },
+                { emoji: "💰", text: "How much to spend?" },
+                { emoji: "🗑️", text: "Stop wasting food" },
+              ].map(({ emoji, text }) => (
+                <div key={text} style={{ background: "white", borderRadius: 16, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, border: "1.5px solid #C8E6C9" }}>
+                  <span style={{ fontSize: 18 }}>{emoji}</span>
+                  <span style={{ fontSize: 14, color: "#1A5C2E", fontWeight: 700 }}>{text}</span>
+                </div>
+              ))}
+            </div>
+
             <div style={{ fontSize: 13, color: "#1A5C2E", fontWeight: 700, marginBottom: 10 }}>
               More than a recipe. It&apos;s your complete meal workflow.
             </div>
@@ -745,6 +747,15 @@ export default function GoEatApp() {
             <div style={{ fontSize: 14, color: "#2E7D32", fontWeight: 700 }}>
               All in one tap. Automatically connected.
             </div>
+
+            {/* Receipt scan (moved from hero) */}
+            <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "receipt")} />
+            <button onClick={() => receiptRef.current?.click()}
+              style={{ marginTop: 12, background: "none", border: "none", padding: 0, fontSize: 14, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: "'Nunito', sans-serif" }}>
+              🧾 Just went shopping? Scan your receipt instead
+            </button>
+
+            <div style={{ fontSize: 13, color: "#999", marginTop: 12 }}>Powered by Claude AI · US &amp; Canada</div>
           </div>
 
           {/* Scan preview */}
