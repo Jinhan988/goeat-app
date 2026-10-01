@@ -96,9 +96,9 @@ Return ONLY valid JSON (no markdown):
 {
   "mealPlan": [
     { "day": "Monday", "meals": [
-      { "type": "Breakfast", "name": "Oatmeal with Banana", "calories": "340 kcal", "tip": "Quick 5-min breakfast" },
-      { "type": "Lunch", "name": "Chicken Caesar Wrap", "calories": "480 kcal", "tip": "Great for lunchboxes" },
-      { "type": "Dinner", "name": "Beef Stir-Fry with Rice", "calories": "620 kcal", "tip": "Use leftover rice tomorrow" }
+      { "type": "Breakfast", "name": "Oatmeal with Banana", "photoQuery": "oatmeal banana bowl", "calories": "340 kcal", "tip": "Quick 5-min breakfast" },
+      { "type": "Lunch", "name": "Chicken Caesar Wrap", "photoQuery": "chicken caesar wrap", "calories": "480 kcal", "tip": "Great for lunchboxes" },
+      { "type": "Dinner", "name": "Beef Stir-Fry with Rice", "photoQuery": "beef stir fry rice", "calories": "620 kcal", "tip": "Use leftover rice tomorrow" }
     ]}
   ],
   "shoppingList": [
@@ -126,6 +126,7 @@ Other rules:
 - The shopping list contains ONLY what the user still needs to buy.
 - No duplicate items: each distinct product should appear only once in the whole list.
 - Follow ${diet} diet.
+- "photoQuery": 2-4 plain English words for finding a matching food photo. Name what is visibly on the plate, most distinctive item first (e.g. "zucchini noodles meat sauce", "bacon eggs mushrooms"). No cuisine labels, adjectives, or words like "leftover", "easy", "homemade".
 
 PER-ITEM PRICING (for accuracy and consistency):
 - Reference prices for this country, to keep pricing realistic and consistent across different plans (adjust up/down for ${store} specifically, and for the exact quantity you list): ${PRICE_ANCHORS[country] || PRICE_ANCHORS.US}
