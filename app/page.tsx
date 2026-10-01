@@ -688,8 +688,15 @@ export default function GoEatApp() {
               <span style={{ fontSize: 13, color: "#999" }}>{showManual ? "▲" : "▼"}</span>
             </button>
 
+            {/* Receipt scan — small, under the two main options */}
+            <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "receipt")} />
+            <button onClick={() => receiptRef.current?.click()}
+              style={{ display: "block", margin: "14px auto 0", minHeight: 40, background: "none", border: "none", padding: "0 8px", fontSize: 15, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, fontFamily: "'Nunito', sans-serif", position: "relative" }}>
+              🧾 Just went shopping? Scan your receipt
+            </button>
+
             {/* Small feature line */}
-            <div style={{ display: "flex", flexWrap: "wrap" as const, justifyContent: "center", gap: 6, marginTop: 20, position: "relative" }}>
+            <div style={{ display: "flex", flexWrap: "wrap" as const, justifyContent: "center", gap: 6, marginTop: 14, position: "relative" }}>
               <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 11px", borderRadius: 99, background: "#DCEDC8", color: "#1A5C2E" }}>7-day meal plan</span>
               <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 11px", borderRadius: 99, background: "#FFE8D6", color: "#C2560A" }}>Shopping list</span>
               <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 11px", borderRadius: 99, background: "white", color: "#1A5C2E", border: "1.5px solid #C8E6C9" }}>Estimated cost</span>
@@ -747,13 +754,6 @@ export default function GoEatApp() {
             <div style={{ fontSize: 14, color: "#2E7D32", fontWeight: 700 }}>
               All in one tap. Automatically connected.
             </div>
-
-            {/* Receipt scan (moved from hero) */}
-            <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "receipt")} />
-            <button onClick={() => receiptRef.current?.click()}
-              style={{ marginTop: 12, background: "none", border: "none", padding: 0, fontSize: 14, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: "'Nunito', sans-serif" }}>
-              🧾 Just went shopping? Scan your receipt instead
-            </button>
 
             <div style={{ fontSize: 13, color: "#999", marginTop: 12 }}>Powered by Claude AI · US &amp; Canada</div>
           </div>
