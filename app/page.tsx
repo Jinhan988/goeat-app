@@ -1,6 +1,14 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { track } from "@vercel/analytics";
+import { track as vercelTrack } from "@vercel/analytics";
+
+// Sends each event to Vercel and Google Analytics (GA4)
+function track(name: string, props?: Record<string, any>) {
+  try { vercelTrack(name, props); } catch {}
+  if (typeof window !== "undefined" && (window as any).gtag) {
+    (window as any).gtag("event", name, props || {});
+  }
+}
 
 const CA_STORES = ["Costco","No Frills","Loblaws","Sobeys","Metro","FreshCo","Food Basics","Walmart Canada","T&T Supermarket"];
 const US_STORES = ["Costco","Walmart","Kroger","Whole Foods","Trader Joe's","Aldi","Target","Safeway","Publix","H-E-B","Meijer","Sprouts","Wegmans"];
