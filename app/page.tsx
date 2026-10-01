@@ -514,7 +514,7 @@ export default function GoEatApp() {
       {/* PHOTO ZOOM */}
       {zoomMeal && (
         <div onClick={() => setZoomMeal(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 310, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 16px" }}>
+          style={{ position: "fixed", inset: 0, background: "#111111", zIndex: 310, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 16px" }}>
           <button onClick={() => setZoomMeal(null)} aria-label="Close"
             style={{ position: "absolute", top: "max(16px, env(safe-area-inset-top))", right: 16, width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.15)", color: "white", fontSize: 22, cursor: "pointer" }}>
             ✕
@@ -522,7 +522,7 @@ export default function GoEatApp() {
 
           <img src={sizedPhoto(mealPhotos[zoomMeal.name], 1080)} alt={zoomMeal.name}
             onClick={e => e.stopPropagation()}
-            style={{ width: "100%", maxWidth: 600, maxHeight: "62vh", objectFit: "contain", borderRadius: 16, display: "block" }} />
+            style={{ width: "calc(100% + 32px)", maxWidth: 632, margin: "0 -16px", aspectRatio: "4 / 3", maxHeight: "68vh", objectFit: "cover", borderRadius: 0, display: "block" }} />
 
           <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 600, marginTop: 16, color: "white", fontFamily: "'Nunito', sans-serif" }}>
             <div style={{ fontWeight: 900, fontSize: 22, lineHeight: 1.25 }}>{zoomMeal.name}</div>
