@@ -727,7 +727,7 @@ export default function GoEatApp() {
 
             {/* Main CTA */}
             <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "fridge")} />
-            <button onClick={() => fridgeRef.current?.click()}
+            <button onClick={() => { track("scan_clicked"); fridgeRef.current?.click(); }}
               style={{ width: "100%", minHeight: 60, padding: 16, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", border: "none", borderRadius: 99, fontWeight: 800, fontSize: 19, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 6px 20px rgba(249,115,22,0.35)", fontFamily: "'Nunito', sans-serif", position: "relative" }}>
               <span style={{ fontSize: 22 }}>📸</span> Scan My Fridge
             </button>
@@ -747,7 +747,7 @@ export default function GoEatApp() {
 
             {/* Receipt scan — small, under the two main options */}
             <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleScan(e.target.files[0], "receipt")} />
-            <button onClick={() => receiptRef.current?.click()}
+            <button onClick={() => { track("receipt_clicked"); receiptRef.current?.click(); }}
               style={{ display: "block", margin: "14px auto 0", minHeight: 40, background: "none", border: "none", padding: "0 8px", fontSize: 15, color: "#2E7D32", fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, fontFamily: "'Nunito', sans-serif", position: "relative" }}>
               🧾 Just went shopping? Scan your receipt
             </button>
