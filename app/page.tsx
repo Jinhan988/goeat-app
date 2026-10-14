@@ -763,8 +763,8 @@ export default function GoEatApp() {
         />
       )}
 
-      {/* HEADER */}
-      <div style={{ background: "white", padding: "14px 20px 12px", position: "sticky", top: 0, zIndex: 50, borderBottom: "2px solid #E8F5E9", boxShadow: "0 2px 12px rgba(26,92,46,0.07)" }}>
+      {/* HEADER (Home uses its own compact search header) */}
+      {view !== "home" && <div style={{ background: "white", padding: "14px 20px 12px", position: "sticky", top: 0, zIndex: 50, borderBottom: "2px solid #E8F5E9", boxShadow: "0 2px 12px rgba(26,92,46,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div onClick={() => setView("home")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
             <img src="/logo.webp" alt="GoEat AI" style={{ width: 44, height: 44, borderRadius: 12, objectFit: "contain" }} />
@@ -781,7 +781,7 @@ export default function GoEatApp() {
             ♡ {savedRecipes.length + savedPlans.length > 0 ? `Saved (${savedRecipes.length + savedPlans.length})` : "Saved"}
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* FAMILY MEMBER MODAL */}
       {editingMember !== null && (
@@ -896,41 +896,30 @@ export default function GoEatApp() {
       {/* HOME — food discovery */}
       {screen !== "loading" && view === "home" && (
         <div>
-          {/* Discovery header */}
-          <div style={{ padding: "20px 18px 6px" }}>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 28, lineHeight: 1.15, color: "#1A5C2E", fontFamily: "'Nunito', sans-serif" }}>What looks good this week?</h1>
-            <p style={{ margin: "6px 0 14px", fontSize: 15, color: "#666", lineHeight: 1.45 }}>Find dishes you love. GoEat turns them into a 7-day plan and one grocery list.</p>
-            <div style={{ position: "relative" }}>
-              <span aria-hidden="true" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "#999" }}>🔎</span>
+          {/* Compact search header */}
+          <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.97)", padding: "10px 12px 8px", display: "flex", alignItems: "center", gap: 10 }}>
+            <img src="/logo.webp" alt="GoEat AI" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "contain", flexShrink: 0 }} />
+            <div style={{ position: "relative", flex: 1 }}>
+              <span aria-hidden="true" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15, color: "#888" }}>🔎</span>
               <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search dishes or cuisines" aria-label="Search dishes"
-                style={{ width: "100%", boxSizing: "border-box", minHeight: 46, padding: "0 14px 0 40px", borderRadius: 99, border: "1.5px solid #DDE8DD", background: "#F7FAF7", fontSize: 15, outline: "none", fontFamily: "'Nunito Sans', sans-serif" }} />
+                style={{ width: "100%", boxSizing: "border-box", minHeight: 46, padding: "0 14px 0 40px", borderRadius: 99, border: "2px solid #E3E3E3", background: "white", fontSize: 16, outline: "none", fontFamily: "'Nunito Sans', sans-serif" }} />
             </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 18px 4px", scrollbarWidth: "none" as const }}>
-            {FEED_FILTERS.map(f => (
-              <button key={f.id} onClick={() => { setFeedFilter(f.id); track("feed_filter", { filter: f.id }); }} aria-pressed={feedFilter === f.id}
-                style={{ flex: "0 0 auto", minHeight: 38, padding: "0 14px", borderRadius: 99, border: feedFilter === f.id ? "none" : "1.5px solid #E0E0E0", background: feedFilter === f.id ? "#1A5C2E" : "white", color: feedFilter === f.id ? "white" : "#333", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                {f.label}
-              </button>
-            ))}
           </div>
 
-          {/* Build-a-plan actions (fridge scan is optional) */}
-          <div style={{ margin: "12px 18px 4px", padding: 14, borderRadius: 20, background: "linear-gradient(160deg,#F1F8E9,#E3F1DA)", border: "1.5px solid #C8E6C9" }}>
-            <button onClick={() => { track("build_plan_clicked", { from: "home" }); setView("week"); }}
-              style={{ width: "100%", minHeight: 52, border: "none", borderRadius: 99, background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 800, fontSize: 17, cursor: "pointer", boxShadow: "0 6px 18px rgba(249,115,22,0.3)", fontFamily: "'Nunito', sans-serif" }}>
-              🗓 Build my 7-day plan
-            </button>
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10, fontSize: 14, flexWrap: "wrap" as const }}>
-              <span style={{ color: "#666" }}>Optional:</span>
-              <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "fridge"); e.target.value = ""; }} />
-              <button onClick={() => { track("scan_clicked"); fridgeRef.current?.click(); }}
-                style={{ background: "none", border: "none", padding: 0, minHeight: 32, color: "#1A5C2E", fontWeight: 800, fontSize: 14, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>📸 scan your fridge</button>
-              <span style={{ color: "#999" }}>or</span>
-              <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "receipt"); e.target.value = ""; }} />
-              <button onClick={() => { track("receipt_clicked"); receiptRef.current?.click(); }}
-                style={{ background: "none", border: "none", padding: 0, minHeight: 32, color: "#1A5C2E", fontWeight: 800, fontSize: 14, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>🧾 a receipt</button>
-            </div>
+          {/* Category chips with photos */}
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 12px 10px", scrollbarWidth: "none" as const }}>
+            {FEED_FILTERS.map(f => {
+              const on = feedFilter === f.id;
+              return (
+                <button key={f.id} onClick={() => { setFeedFilter(f.id); track("feed_filter", { filter: f.id }); }} aria-pressed={on}
+                  style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 0, height: 52, padding: 0, borderRadius: 14, overflow: "hidden", border: on ? "2px solid #1A5C2E" : "2px solid transparent", background: on ? "#1A5C2E" : f.tint, color: on ? "white" : "#222", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                  {f.thumb && mealPhotos[f.thumb] && (
+                    <img src={sizedPhoto(mealPhotos[f.thumb], 120)} alt="" style={{ width: 52, height: 52, objectFit: "cover", display: "block" }} />
+                  )}
+                  <span style={{ padding: "0 14px" }}>{f.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {scanError && (
@@ -1080,19 +1069,11 @@ export default function GoEatApp() {
 
           {showManual && settingsPanel}
 
-          {/* Food feed */}
-          <div style={{ padding: "18px 12px 8px" }}>
-            <div style={{ padding: "0 6px 10px", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-              <h2 style={{ margin: 0, fontWeight: 900, fontSize: 19, color: "#1A1A18", fontFamily: "'Nunito', sans-serif" }}>
-                {FEED_FILTERS.find(f => f.id === feedFilter)?.label || "Dishes"}
-              </h2>
-              {feedFilter === "forYou" && savedRecipes.length === 0 && (
-                <span style={{ fontSize: 12, color: "#888" }}>Save dishes to personalize</span>
-              )}
-            </div>
+          {/* Food feed — two-column masonry */}
+          <div style={{ padding: "4px 8px 8px" }}>
             {feedList().length === 0 ? (
-              <div style={{ padding: "18px 6px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 14, color: "#666", marginBottom: 12 }}>No dishes match{search.trim() ? ` "${search.trim()}"` : ""}.</div>
+              <div style={{ padding: "24px 12px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 15, color: "#666", marginBottom: 12 }}>No dishes match{search.trim() ? ` "${search.trim()}"` : ""}.</div>
                 {search.trim() && (
                   <button onClick={() => openSheet({ name: search.trim(), source: "search" })}
                     style={{ minHeight: 44, padding: "0 18px", borderRadius: 99, border: "2px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
@@ -1100,32 +1081,69 @@ export default function GoEatApp() {
                   </button>
                 )}
               </div>
-            ) : (
-              <div style={{ columnCount: 2, columnGap: 10 }}>
-                {feedList().map((d, i) => (
-                  <div key={d.name} style={{ breakInside: "avoid" as const, marginBottom: 14, position: "relative" }}>
-                    <button onClick={() => openFeedDish(d)}
-                      style={{ display: "block", width: "100%", border: "none", padding: 0, background: "none", cursor: "pointer", textAlign: "left" as const, fontFamily: "'Nunito', sans-serif" }}>
-                      <div style={{ height: [220, 170, 250, 190, 205, 235][i % 6], borderRadius: 18, overflow: "hidden", background: ["#E8F5E9", "#FFF1E6", "#F3EDE4"][i % 3] }}>
-                        {mealPhotos[d.name] && (
-                          <img src={sizedPhoto(mealPhotos[d.name], 500)} alt={d.name} loading="lazy"
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                        )}
-                      </div>
-                      <div style={{ padding: "6px 4px 0" }}>
-                        <div style={{ fontWeight: 800, fontSize: 14, color: "#222", lineHeight: 1.25 }}>{d.name}</div>
-                        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>~{d.minutes} min · {d.cuisine}</div>
-                      </div>
-                    </button>
-                    <button onClick={() => toggleSave({ name: d.name, cuisine: d.cuisine, minutes: d.minutes, meal: d.meal, source: "feed" })}
-                      aria-label={isSaved(d.name) ? `Unsave ${d.name}` : `Save ${d.name}`} aria-pressed={isSaved(d.name)}
-                      style={{ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.92)", color: isSaved(d.name) ? "#E8620A" : "#333", fontSize: 18, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>
-                      {isSaved(d.name) ? "♥" : "♡"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            ) : (() => {
+              const HEIGHTS = [240, 190, 280, 210, 255, 225, 300, 200];
+              const items: ({ kind: "dish"; d: FeedDish; h: number } | { kind: "plan"; h: number })[] =
+                feedList().map((d, i) => ({ kind: "dish" as const, d, h: HEIGHTS[i % HEIGHTS.length] }));
+              // The plan card sits among the first few photos so it's seen without scrolling far.
+              items.splice(Math.min(3, items.length), 0, { kind: "plan", h: 230 });
+              const cols: (typeof items)[] = [[], []];
+              const heights = [0, 0];
+              for (const it of items) {
+                const c = heights[0] <= heights[1] ? 0 : 1;
+                cols[c].push(it);
+                heights[c] += it.h + 48;
+              }
+              return (
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  {cols.map((col, ci) => (
+                    <div key={ci} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+                      {col.map(it => it.kind === "plan" ? (
+                        <div key="plan-card" style={{ minHeight: it.h, borderRadius: 18, padding: 14, boxSizing: "border-box", background: "linear-gradient(160deg,#1A5C2E,#2E7D32)", color: "white", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.2, fontFamily: "'Nunito', sans-serif" }}>Turn dishes you love into your week</div>
+                            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 6, lineHeight: 1.4 }}>7-day plan + one grocery list with estimated cost.</div>
+                          </div>
+                          <div>
+                            <button onClick={() => { track("build_plan_clicked", { from: "feed_card" }); setView("week"); }}
+                              style={{ width: "100%", minHeight: 44, marginTop: 12, border: "none", borderRadius: 99, background: "#F97316", color: "white", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                              🗓 Plan my week
+                            </button>
+                            <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "fridge"); e.target.value = ""; }} />
+                            <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "receipt"); e.target.value = ""; }} />
+                            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 8 }}>
+                              <button onClick={() => { track("scan_clicked"); fridgeRef.current?.click(); }}
+                                style={{ background: "none", border: "none", padding: 0, minHeight: 32, color: "white", fontWeight: 700, fontSize: 13, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Nunito', sans-serif" }}>📸 Fridge</button>
+                              <button onClick={() => { track("receipt_clicked"); receiptRef.current?.click(); }}
+                                style={{ background: "none", border: "none", padding: 0, minHeight: 32, color: "white", fontWeight: 700, fontSize: 13, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Nunito', sans-serif" }}>🧾 Receipt</button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={it.d.name} style={{ position: "relative" }}>
+                          <button onClick={() => openFeedDish(it.d)}
+                            style={{ display: "block", width: "100%", border: "none", padding: 0, background: "none", cursor: "pointer", textAlign: "left" as const, fontFamily: "'Nunito', sans-serif" }}>
+                            <div style={{ height: it.h, borderRadius: 18, overflow: "hidden", background: "#F1EEE8" }}>
+                              {mealPhotos[it.d.name] && (
+                                <img src={sizedPhoto(mealPhotos[it.d.name], 500)} alt={it.d.name} loading="lazy"
+                                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                              )}
+                            </div>
+                            <div style={{ padding: "6px 4px 0", fontWeight: 700, fontSize: 14, color: "#222", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.d.name}</div>
+                            <div style={{ padding: "1px 4px 0", fontSize: 12, color: "#888" }}>~{it.d.minutes} min · {it.d.cuisine}</div>
+                          </button>
+                          <button onClick={() => toggleSave({ name: it.d.name, cuisine: it.d.cuisine, minutes: it.d.minutes, meal: it.d.meal, source: "feed" })}
+                            aria-label={isSaved(it.d.name) ? `Unsave ${it.d.name}` : `Save ${it.d.name}`} aria-pressed={isSaved(it.d.name)}
+                            style={{ position: "absolute", top: it.h - 46, right: 8, width: 38, height: 38, borderRadius: 12, border: "none", background: isSaved(it.d.name) ? "#E8620A" : "rgba(255,255,255,0.92)", color: isSaved(it.d.name) ? "white" : "#222", fontSize: 18, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}>
+                            {isSaved(it.d.name) ? "♥" : "♡"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* 5 Merits */}

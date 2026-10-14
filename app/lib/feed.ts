@@ -27,20 +27,21 @@ export function feedPhotoCredit(d: FeedDish): { name: string; link: string } {
 
 export const QUICK_MINUTES = 20;
 
-export const FEED_FILTERS: { id: string; label: string }[] = [
-  { id: "forYou", label: "For You" },
-  { id: "quick", label: "Quick & Easy" },
-  { id: "highProtein", label: "High Protein" },
-  { id: "budget", label: "Budget Friendly" },
-  { id: "vegetarian", label: "Vegetarian" },
-  { id: "Korean", label: "Korean" },
-  { id: "Japanese", label: "Japanese" },
-  { id: "Chinese", label: "Chinese" },
-  { id: "Italian", label: "Italian" },
-  { id: "Mexican", label: "Mexican" },
-  { id: "Indian", label: "Indian" },
-  { id: "Mediterranean", label: "Mediterranean" },
-  { id: "American", label: "American" },
+// Category chips. `thumb` is the dish whose photo appears on the chip.
+export const FEED_FILTERS: { id: string; label: string; thumb?: string; tint: string }[] = [
+  { id: "forYou", label: "For You", tint: "#E8F5E9" },
+  { id: "quick", label: "Quick & Easy", thumb: "Avocado Toast with Eggs", tint: "#FFF3D6" },
+  { id: "highProtein", label: "High Protein", thumb: "Garlic Butter Salmon with Asparagus", tint: "#FDE2E4" },
+  { id: "budget", label: "Budget Friendly", thumb: "Chickpea Curry", tint: "#E3F2FD" },
+  { id: "vegetarian", label: "Vegetarian", thumb: "Caprese Sandwich", tint: "#E8F5E9" },
+  { id: "Korean", label: "Korean", thumb: "Bulgogi Rice Bowl", tint: "#F3E5F5" },
+  { id: "Japanese", label: "Japanese", thumb: "Miso Ramen with Soft Egg", tint: "#FFF3D6" },
+  { id: "Chinese", label: "Chinese", thumb: "Mapo Tofu", tint: "#FDE2E4" },
+  { id: "Italian", label: "Italian", thumb: "Spaghetti Bolognese", tint: "#E3F2FD" },
+  { id: "Mexican", label: "Mexican", thumb: "Beef Tacos", tint: "#F3E5F5" },
+  { id: "Indian", label: "Indian", thumb: "Butter Chicken", tint: "#FFF3D6" },
+  { id: "Mediterranean", label: "Mediterranean", thumb: "Falafel Pita with Hummus", tint: "#E8F5E9" },
+  { id: "American", label: "American", thumb: "Banana Oat Pancakes", tint: "#FDE2E4" },
 ];
 
 export const FEED: FeedDish[] = [
