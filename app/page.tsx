@@ -393,6 +393,18 @@ export default function GoEatApp() {
     writeJSON(KEYS.weekPicks, picks);
   }
 
+  // "＋" on a feed card: put the dish in the next open slot (dinners first), or take it out again.
+  function quickAdd(d: FeedDish) {
+    const existing = weekPicks.find(p => p.name === d.name);
+    if (existing) { removePick(existing); track("quick_add_removed", { recipe: d.name }); return; }
+    const order: MealType[] = d.meal === "Breakfast" ? ["Breakfast", "Lunch", "Dinner"] : d.meal === "Lunch" ? ["Lunch", "Dinner", "Breakfast"] : ["Dinner", "Lunch", "Breakfast"];
+    for (const type of order) {
+      const day = DAYS.find(dy => !weekPicks.some(p => p.day === dy && p.type === type));
+      if (day) { addToWeek(d.name, day, type, "feed"); return; }
+    }
+  }
+  const isPicked = (name: string) => weekPicks.some(p => p.name === name);
+
   async function swapMeal(dayName: string, type: string, currentName: string) {
     if (!result?.mealPlan) return;
     const key = `${dayName}-${type}`;
@@ -742,7 +754,7 @@ export default function GoEatApp() {
   );
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: "#FFFFFF", boxShadow: "0 0 40px rgba(0,0,0,0.08)", fontFamily: "'Nunito Sans', sans-serif", paddingBottom: 140 }}>
+    <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: "#FFFFFF", boxShadow: "0 0 40px rgba(0,0,0,0.08)", fontFamily: "'Nunito Sans', sans-serif", paddingBottom: 150 }}>
 
       {/* RECIPE DETAIL */}
       {sheet && (
@@ -904,6 +916,32 @@ export default function GoEatApp() {
               <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search dishes or cuisines" aria-label="Search dishes"
                 style={{ width: "100%", boxSizing: "border-box", minHeight: 46, padding: "0 14px 0 40px", borderRadius: 99, border: "2px solid #E3E3E3", background: "white", fontSize: 16, outline: "none", fontFamily: "'Nunito Sans', sans-serif" }} />
             </div>
+          </div>
+
+          {/* Main actions: plan, fridge scan, receipt scan */}
+          <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "fridge"); e.target.value = ""; }} />
+          <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "receipt"); e.target.value = ""; }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 8, padding: "2px 12px 12px" }}>
+            {[
+              { key: "plan", icon: "🗓", label: "Plan my week", sub: "7 days + grocery list", bg: "linear-gradient(150deg,#F97316,#E8620A)", fg: "white", subFg: "rgba(255,255,255,0.9)",
+                onClick: () => { track("build_plan_clicked", { from: "home_tile" }); setView("week"); } },
+              { key: "fridge", icon: "📸", label: "Scan fridge", sub: "Use what you have", bg: "#E3F1DA", fg: "#1A5C2E", subFg: "#3F6B4B",
+                onClick: () => { track("scan_clicked", { from: "home_tile" }); fridgeRef.current?.click(); } },
+              { key: "receipt", icon: "🧾", label: "Scan receipt", sub: "Just went shopping?", bg: "#FFF3D6", fg: "#7A4A00", subFg: "#8A6A30",
+                onClick: () => { track("receipt_clicked", { from: "home_tile" }); receiptRef.current?.click(); } },
+            ].map(t => (
+              <button key={t.key} onClick={t.onClick} aria-label={t.label}
+                style={{ minHeight: 98, borderRadius: 18, border: "none", background: t.bg, color: t.fg, padding: "12px 10px", textAlign: "left" as const, display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: "pointer", fontFamily: "'Nunito', sans-serif", boxShadow: t.key === "plan" ? "0 6px 16px rgba(232,98,10,0.3)" : "none" }}>
+                <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{t.icon}</span>
+                <span>
+                  <span style={{ display: "block", fontWeight: 900, fontSize: 15, lineHeight: 1.15 }}>{t.label}</span>
+                  <span style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: t.subFg, marginTop: 3, lineHeight: 1.25 }}>{t.sub}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <div style={{ padding: "0 14px 8px", fontSize: 13.5, color: "#555", fontWeight: 600 }}>
+            Tap <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: "#F97316", color: "white", fontWeight: 900, fontSize: 13 }}>＋</span> on dishes you like. We&apos;ll plan the rest of your week.
           </div>
 
           {/* Category chips with photos */}
@@ -1083,10 +1121,7 @@ export default function GoEatApp() {
               </div>
             ) : (() => {
               const HEIGHTS = [240, 190, 280, 210, 255, 225, 300, 200];
-              const items: ({ kind: "dish"; d: FeedDish; h: number } | { kind: "plan"; h: number })[] =
-                feedList().map((d, i) => ({ kind: "dish" as const, d, h: HEIGHTS[i % HEIGHTS.length] }));
-              // The plan card sits among the first few photos so it's seen without scrolling far.
-              items.splice(Math.min(3, items.length), 0, { kind: "plan", h: 230 });
+              const items = feedList().map((d, i) => ({ kind: "dish" as const, d, h: HEIGHTS[i % HEIGHTS.length] }));
               const cols: (typeof items)[] = [[], []];
               const heights = [0, 0];
               for (const it of items) {
@@ -1098,28 +1133,7 @@ export default function GoEatApp() {
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                   {cols.map((col, ci) => (
                     <div key={ci} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-                      {col.map(it => it.kind === "plan" ? (
-                        <div key="plan-card" style={{ minHeight: it.h, borderRadius: 18, padding: 14, boxSizing: "border-box", background: "linear-gradient(160deg,#1A5C2E,#2E7D32)", color: "white", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                          <div>
-                            <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.2, fontFamily: "'Nunito', sans-serif" }}>Turn dishes you love into your week</div>
-                            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 6, lineHeight: 1.4 }}>7-day plan + one grocery list with estimated cost.</div>
-                          </div>
-                          <div>
-                            <button onClick={() => { track("build_plan_clicked", { from: "feed_card" }); setView("week"); }}
-                              style={{ width: "100%", minHeight: 44, marginTop: 12, border: "none", borderRadius: 99, background: "#F97316", color: "white", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                              🗓 Plan my week
-                            </button>
-                            <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "fridge"); e.target.value = ""; }} />
-                            <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "receipt"); e.target.value = ""; }} />
-                            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 8 }}>
-                              <button onClick={() => { track("scan_clicked"); fridgeRef.current?.click(); }}
-                                style={{ background: "none", border: "none", padding: 0, minHeight: 32, color: "white", fontWeight: 700, fontSize: 13, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Nunito', sans-serif" }}>📸 Fridge</button>
-                              <button onClick={() => { track("receipt_clicked"); receiptRef.current?.click(); }}
-                                style={{ background: "none", border: "none", padding: 0, minHeight: 32, color: "white", fontWeight: 700, fontSize: 13, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Nunito', sans-serif" }}>🧾 Receipt</button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
+                      {col.map(it => (
                         <div key={it.d.name} style={{ position: "relative" }}>
                           <button onClick={() => openFeedDish(it.d)}
                             style={{ display: "block", width: "100%", border: "none", padding: 0, background: "none", cursor: "pointer", textAlign: "left" as const, fontFamily: "'Nunito', sans-serif" }}>
@@ -1134,8 +1148,13 @@ export default function GoEatApp() {
                           </button>
                           <button onClick={() => toggleSave({ name: it.d.name, cuisine: it.d.cuisine, minutes: it.d.minutes, meal: it.d.meal, source: "feed" })}
                             aria-label={isSaved(it.d.name) ? `Unsave ${it.d.name}` : `Save ${it.d.name}`} aria-pressed={isSaved(it.d.name)}
-                            style={{ position: "absolute", top: it.h - 46, right: 8, width: 38, height: 38, borderRadius: 12, border: "none", background: isSaved(it.d.name) ? "#E8620A" : "rgba(255,255,255,0.92)", color: isSaved(it.d.name) ? "white" : "#222", fontSize: 18, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}>
+                            style={{ position: "absolute", top: 8, right: 8, width: 34, height: 34, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.9)", color: isSaved(it.d.name) ? "#E8620A" : "#333", fontSize: 16, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>
                             {isSaved(it.d.name) ? "♥" : "♡"}
+                          </button>
+                          <button onClick={() => quickAdd(it.d)}
+                            aria-label={isPicked(it.d.name) ? `Remove ${it.d.name} from my week` : `Add ${it.d.name} to my week`} aria-pressed={isPicked(it.d.name)}
+                            style={{ position: "absolute", top: it.h - 50, right: 8, minWidth: 42, height: 42, padding: "0 10px", borderRadius: 14, border: "none", background: isPicked(it.d.name) ? "#1A5C2E" : "#F97316", color: "white", fontSize: isPicked(it.d.name) ? 13 : 24, fontWeight: 900, cursor: "pointer", boxShadow: "0 3px 10px rgba(0,0,0,0.25)", fontFamily: "'Nunito', sans-serif" }}>
+                            {isPicked(it.d.name) ? `✓ ${weekPicks.find(p => p.name === it.d.name)?.day.slice(0, 3)}` : "＋"}
                           </button>
                         </div>
                       ))}
@@ -1665,13 +1684,30 @@ export default function GoEatApp() {
           </div>
         </div>
       )}
-      {/* Picks bar — shortcut to build the plan */}
-      {screen !== "loading" && view === "home" && !result && weekPicks.length > 0 && !sheet && (
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 68, zIndex: 140, padding: "0 16px" }}>
-          <button onClick={() => setView("week")}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 398, margin: "0 auto", minHeight: 52, padding: "0 18px", borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: "0 6px 18px rgba(0,0,0,0.2)", fontFamily: "'Nunito', sans-serif" }}>
-            <span>🗓 {weekPicks.length} dish{weekPicks.length > 1 ? "es" : ""} in My Week</span>
-            <span>Build plan →</span>
+      {/* This-week tray — browsing always leads to the plan */}
+      {screen !== "loading" && view === "home" && !sheet && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 68, zIndex: 140, padding: "0 12px" }}>
+          <button onClick={() => { track("week_tray_clicked", { picks: weekPicks.length, hasPlan: !!result }); setView("week"); }}
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 406, margin: "0 auto", minHeight: 56, padding: "6px 8px 6px 14px", borderRadius: 18, border: "none", background: "#1A5C2E", color: "white", cursor: "pointer", boxShadow: "0 8px 20px rgba(0,0,0,0.22)", fontFamily: "'Nunito', sans-serif", textAlign: "left" as const }}>
+            <span style={{ display: "flex", flexShrink: 0 }}>
+              {weekPicks.slice(0, 3).map((p, i) => (
+                <span key={p.name + p.day} style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden", border: "2px solid #1A5C2E", marginLeft: i ? -10 : 0, background: "#2E7D32" }}>
+                  {mealPhotos[p.name] && <img src={sizedPhoto(mealPhotos[p.name], 80)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                </span>
+              ))}
+              {weekPicks.length === 0 && <span aria-hidden="true" style={{ fontSize: 22 }}>🗓</span>}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontWeight: 900, fontSize: 15 }}>
+                {result ? "Your meal plan is ready" : weekPicks.length > 0 ? `${weekPicks.length} dish${weekPicks.length > 1 ? "es" : ""} picked` : "This week's plan"}
+              </span>
+              <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>
+                {result ? "Meals + grocery list" : weekPicks.length > 0 ? "We'll plan the rest" : "Tap ＋ on dishes you like"}
+              </span>
+            </span>
+            <span style={{ flexShrink: 0, padding: "10px 14px", borderRadius: 12, background: "#F97316", fontWeight: 900, fontSize: 14 }}>
+              {result ? "View →" : "Build plan →"}
+            </span>
           </button>
         </div>
       )}
