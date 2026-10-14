@@ -90,6 +90,7 @@ export default function GoEatApp() {
   const [shoppingStale, setShoppingStale] = useState(false);
   const [shopUpdating, setShopUpdating] = useState(false);
   const [shopError, setShopError] = useState("");
+  const [editSettings, setEditSettings] = useState(false);
   const [swapping, setSwapping] = useState<string | null>(null);
   const [swapError, setSwapError] = useState("");
   const [selectingSaved, setSelectingSaved] = useState(false);
@@ -383,6 +384,7 @@ export default function GoEatApp() {
       const next = { ...result, mealPlan: plan };
       setResult(next);
       setShoppingStale(true);
+      setShopError("");
       persistResult(next, true);
     }
   }
@@ -428,6 +430,7 @@ export default function GoEatApp() {
       const next = { ...result, mealPlan: plan };
       setResult(next);
       setShoppingStale(true);
+      setShopError("");
       persistResult(next, true);
       fetchMealPhoto(data.meal.name, data.meal.photoQuery);
       track("meal_swapped", { day: dayName, meal: type });
@@ -439,6 +442,7 @@ export default function GoEatApp() {
 
   async function updateShoppingList() {
     if (!result?.mealPlan) return;
+    const planSent = result.mealPlan;
     setShopUpdating(true);
     setShopError("");
     try {
@@ -452,16 +456,28 @@ export default function GoEatApp() {
       });
       const data = res.ok ? await res.json() : null;
       if (!data || !Array.isArray(data.shoppingList)) throw new Error("no list");
-      const next = { ...result, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
+      const cur = resultRef.current || result;
+      const stillStale = cur.mealPlan !== planSent; // plan changed again while we waited
+      const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
       setResult(next);
       setChecked({});
-      setShoppingStale(false);
-      persistResult(next, false);
+      setShoppingStale(stillStale);
+      persistResult(next, stillStale);
     } catch {
-      setShopError("Couldn't update the shopping list. Please try again.");
+      setShopError("Couldn't update the shopping list.");
     }
     setShopUpdating(false);
   }
+
+  // Rebuild the shopping list automatically shortly after the plan changes.
+  const resultRef = useRef<any>(null);
+  resultRef.current = result;
+  useEffect(() => {
+    if (!shoppingStale || shopUpdating || shopError || !result?.mealPlan) return;
+    const t = setTimeout(() => { track("shopping_list_auto_updated"); updateShoppingList(); }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shoppingStale, shopUpdating, shopError, result]);
 
   // ---------- Extra shopping items from recipes ----------
   function addIngredientsToList(name: string) {
@@ -1146,11 +1162,6 @@ export default function GoEatApp() {
                             <div style={{ padding: "6px 4px 0", fontWeight: 700, fontSize: 14, color: "#222", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.d.name}</div>
                             <div style={{ padding: "1px 4px 0", fontSize: 12, color: "#888" }}>~{it.d.minutes} min · {it.d.cuisine}</div>
                           </button>
-                          <button onClick={() => toggleSave({ name: it.d.name, cuisine: it.d.cuisine, minutes: it.d.minutes, meal: it.d.meal, source: "feed" })}
-                            aria-label={isSaved(it.d.name) ? `Unsave ${it.d.name}` : `Save ${it.d.name}`} aria-pressed={isSaved(it.d.name)}
-                            style={{ position: "absolute", top: 8, right: 8, width: 34, height: 34, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.9)", color: isSaved(it.d.name) ? "#E8620A" : "#333", fontSize: 16, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}>
-                            {isSaved(it.d.name) ? "♥" : "♡"}
-                          </button>
                           <button onClick={() => quickAdd(it.d)}
                             aria-label={isPicked(it.d.name) ? `Remove ${it.d.name} from my week` : `Add ${it.d.name} to my week`} aria-pressed={isPicked(it.d.name)}
                             style={{ position: "absolute", top: it.h - 50, right: 8, minWidth: 42, height: 42, padding: "0 10px", borderRadius: 14, border: "none", background: isPicked(it.d.name) ? "#1A5C2E" : "#F97316", color: "white", fontSize: isPicked(it.d.name) ? 13 : 24, fontWeight: 900, cursor: "pointer", boxShadow: "0 3px 10px rgba(0,0,0,0.25)", fontFamily: "'Nunito', sans-serif" }}>
@@ -1286,9 +1297,22 @@ export default function GoEatApp() {
           )}
 
           <div style={{ padding: "18px 22px 0" }}>
-            <h2 style={{ margin: 0, fontWeight: 900, fontSize: 18, color: "#1A1A18", fontFamily: "'Nunito', sans-serif" }}>Your settings</h2>
+            {error && !editSettings && <div role="alert" style={{ background: "#FFF0F0", border: "1.5px solid #FFCDD2", borderRadius: 16, padding: "12px 14px", fontSize: 14, color: "#e63946", fontWeight: 600, marginBottom: 10 }}>⚠️ {error}</div>}
+            <button onClick={() => { track("week_generate_clicked", { picks: weekPicks.length, edited: editSettings }); generate(); }}
+              style={{ width: "100%", minHeight: 56, borderRadius: 99, border: "none", background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 900, fontSize: 17, cursor: "pointer", boxShadow: "0 6px 16px rgba(232,98,10,0.3)", fontFamily: "'Nunito', sans-serif" }}>
+              🍽️ {weekPicks.length + includeMeals.length > 0 ? "Build my week with these" : "Build my 7-day plan"}
+            </button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, padding: "10px 14px", borderRadius: 14, background: "#F7FAF7" }}>
+              <span style={{ fontSize: 14, color: "#444", fontWeight: 700, minWidth: 0 }}>
+                👨‍👩‍👧 {family} {family === 1 ? "person" : "people"} · {sym}{budget || "150"} · {store}{diets.length ? ` · ${diets.join(", ")}` : ""}{cuisines.length ? ` · ${cuisines.join(", ")}` : ""}
+              </span>
+              <button onClick={() => setEditSettings(v => !v)} aria-expanded={editSettings}
+                style={{ flexShrink: 0, minHeight: 36, padding: "0 12px", borderRadius: 99, border: "1.5px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                {editSettings ? "Done" : "Edit"}
+              </button>
+            </div>
           </div>
-          {settingsPanel}
+          {editSettings && settingsPanel}
         </div>
       )}
 
@@ -1459,14 +1483,19 @@ export default function GoEatApp() {
           {tab === "plan" && (
             <div>
               {shoppingStale && (
-                <div style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#FFF8E6", border: "1.5px solid #F5C842" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#7A5A00", marginBottom: 8 }}>Your plan changed. The shopping list and cost don&apos;t include the new meals yet.</div>
-                  <button onClick={updateShoppingList} disabled={shopUpdating}
-                    style={{ width: "100%", minHeight: 44, borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 14, cursor: shopUpdating ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                    {shopUpdating ? "Updating shopping list…" : "🛒 Update shopping list"}
-                  </button>
-                  {shopError && <div role="alert" style={{ marginTop: 8, fontSize: 13, color: "#B4400A" }}>{shopError}</div>}
-                </div>
+                shopError ? (
+                  <div role="alert" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#FFF0EC", border: "1.5px solid #F5B49A" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#B4400A", marginBottom: 8 }}>{shopError} The list and cost don&apos;t include your new meals yet.</div>
+                    <button onClick={() => setShopError("")}
+                      style={{ width: "100%", minHeight: 44, borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                      Try again
+                    </button>
+                  </div>
+                ) : (
+                  <div role="status" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#F1F8F1", border: "1.5px solid #C8E6C9", fontSize: 14, fontWeight: 700, color: "#1A5C2E" }}>
+                    🔄 Updating your shopping list for the new meals…
+                  </div>
+                )
               )}
               {swapError && <div role="alert" style={{ margin: "10px 22px 0", fontSize: 13, color: "#B4400A" }}>{swapError}</div>}
               {/* Stats */}
@@ -1561,14 +1590,19 @@ export default function GoEatApp() {
           {tab === "shop" && (
             <div>
               {shoppingStale && (
-                <div style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#FFF8E6", border: "1.5px solid #F5C842" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#7A5A00", marginBottom: 8 }}>Your plan changed. The shopping list and cost don&apos;t include the new meals yet.</div>
-                  <button onClick={updateShoppingList} disabled={shopUpdating}
-                    style={{ width: "100%", minHeight: 44, borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 14, cursor: shopUpdating ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                    {shopUpdating ? "Updating shopping list…" : "🛒 Update shopping list"}
-                  </button>
-                  {shopError && <div role="alert" style={{ marginTop: 8, fontSize: 13, color: "#B4400A" }}>{shopError}</div>}
-                </div>
+                shopError ? (
+                  <div role="alert" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#FFF0EC", border: "1.5px solid #F5B49A" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#B4400A", marginBottom: 8 }}>{shopError} The list and cost don&apos;t include your new meals yet.</div>
+                    <button onClick={() => setShopError("")}
+                      style={{ width: "100%", minHeight: 44, borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                      Try again
+                    </button>
+                  </div>
+                ) : (
+                  <div role="status" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#F1F8F1", border: "1.5px solid #C8E6C9", fontSize: 14, fontWeight: 700, color: "#1A5C2E" }}>
+                    🔄 Updating your shopping list for the new meals…
+                  </div>
+                )
               )}
 
               <div style={{ padding: "16px 22px 10px" }}>
@@ -1715,7 +1749,7 @@ export default function GoEatApp() {
       {screen !== "loading" && (
         <BottomNav
           view={view}
-          onChange={v => { if (v === "saved") setSelectingSaved(false); setView(v); window.scrollTo(0, 0); }}
+          onChange={v => { if (v === "saved") setSelectingSaved(false); if (v === "shop") setTab("shop"); else if (v === "week" && tab === "shop") setTab("plan"); setView(v); window.scrollTo(0, 0); }}
           badges={{ week: result ? 0 : weekPicks.length, saved: savedRecipes.length, shop: shoppingStale ? 1 : 0 }}
         />
       )}
