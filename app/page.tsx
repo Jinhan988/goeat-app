@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { FEED, FEED_FILTERS, dishMatches, findFeedDish, type FeedDish, type MealType } from "./lib/feed";
+import { FEED, FEED_FILTERS, dishMatches, findFeedDish, feedPhotoUrl, feedPhotoCredit, type FeedDish, type MealType } from "./lib/feed";
 import { DAYS, KEYS, readJSON, writeJSON, type SavedRecipe, type WeekPick, type ExtraItem } from "./lib/storage";
 import RecipeSheet, { type RecipeData, type SheetDish } from "./components/RecipeSheet";
 import BottomNav, { type View } from "./components/BottomNav";
@@ -73,8 +73,9 @@ export default function GoEatApp() {
   const [familyProfiles, setFamilyProfiles] = useState<any[]>([]);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [mealPhotos, setMealPhotos] = useState<Record<string,string>>({});
-  const [mealCredits, setMealCredits] = useState<Record<string,{ name: string; link: string }>>({});
+  // Feed photos are fixed Unsplash images, so they show instantly without any API call.
+  const [mealPhotos, setMealPhotos] = useState<Record<string,string>>(() => Object.fromEntries(FEED.map(d => [d.name, feedPhotoUrl(d)])));
+  const [mealCredits, setMealCredits] = useState<Record<string,{ name: string; link: string }>>(() => Object.fromEntries(FEED.map(d => [d.name, feedPhotoCredit(d)])));
   // GoEat 2.0 — discovery, saved recipes, week picks
   const [view, setView] = useState<View>("home");
   const [feedFilter, setFeedFilter] = useState("forYou");
@@ -127,23 +128,6 @@ export default function GoEatApp() {
       setResult(last);
       if (last.shoppingStale) setShoppingStale(true);
     }
-  }, []);
-
-  // Feed photos (cached daily on the server)
-  useEffect(() => {
-    fetch("/api/feed-photos")
-      .then(r => (r.ok ? r.json() : { photos: [] }))
-      .then((d: { photos?: { name: string; url: string; credit: { name: string; link: string } | null }[] }) => {
-        const photos: Record<string, string> = {};
-        const credits: Record<string, { name: string; link: string }> = {};
-        for (const ph of d.photos || []) {
-          if (ph.url) photos[ph.name] = ph.url;
-          if (ph.credit) credits[ph.name] = ph.credit;
-        }
-        setMealPhotos(prev => ({ ...photos, ...prev }));
-        setMealCredits(prev => ({ ...credits, ...prev }));
-      })
-      .catch(() => {});
   }, []);
 
   // Keep the result tabs in sync with the bottom navigation
