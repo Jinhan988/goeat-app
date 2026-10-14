@@ -133,9 +133,7 @@ Be THOROUGH. Be SPECIFIC. Scan every visible area.`;
 
   } catch (error) {
     console.error("Scan error:", error);
-    return NextResponse.json({
-      items: ["Eggs", "Milk", "Butter", "Carrots"],
-      uncertain: ["Container — contents unclear"]
-    });
+    // Never return made-up ingredients: tell the app the scan failed.
+    return NextResponse.json({ error: "Scan failed" }, { status: 500 });
   }
 }

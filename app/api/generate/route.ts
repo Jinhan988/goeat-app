@@ -43,9 +43,70 @@ async function callClaude(prompt: string, maxTokens: number) {
   return JSON.parse(text.slice(start, end + 1));
 }
 
+type ShoppingCategory = { category?: string; emoji?: string; items: { name?: string; qty?: string; price?: unknown }[] };
+
+// Sum the shopping list in code (not by the AI). Drops unpriced items and duplicates.
+function sumList(r: { shoppingList?: unknown }): number {
+  const list = (Array.isArray(r.shoppingList) ? r.shoppingList : []) as ShoppingCategory[];
+  let total = 0;
+  for (const cat of list) {
+    if (!Array.isArray(cat.items)) cat.items = [];
+    const seen = new Set<string>();
+    cat.items = cat.items.filter((item) => {
+      const price = Number(String(item.price ?? "").replace(/[^0-9.]/g, "")) || 0;
+      item.price = Math.round(price * 100) / 100;
+      const key = String(item.name || "").trim().toLowerCase();
+      if ((item.price as number) <= 0 || !key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    for (const item of cat.items) total += item.price as number;
+  }
+  r.shoppingList = list;
+  return Math.round(total * 100) / 100;
+}
+
+// If the list is over budget, ask the model once to trim it. Returns the new total.
+async function trimToBudget(r: { shoppingList?: unknown }, total: number, budgetNum: number, sym: string, store: string): Promise<number> {
+  if (!(budgetNum > 0 && total > budgetNum)) return total;
+  const trimPrompt = `This shopping list totals ${sym}${total}, which is over the ${sym}${budgetNum} budget.
+Shopping list JSON: ${JSON.stringify(r.shoppingList)}
+
+Return ONLY the corrected "shoppingList" as valid JSON (same shape, no markdown), edited so the sum of all prices is at or under ${sym}${budgetNum}. Reduce quantities, remove the least essential items, or substitute cheaper alternatives. Keep it realistic for ${store}.
+{ "shoppingList": [ ... ] }`;
+  try {
+    const trimmed = await callClaude(trimPrompt, 3000);
+    if (Array.isArray(trimmed.shoppingList)) {
+      r.shoppingList = trimmed.shoppingList;
+      return sumList(r);
+    }
+  } catch {
+    // Keep the original list if the trim call fails.
+  }
+  return total;
+}
+
+const SHOPPING_SHAPE = `"shoppingList": [
+    { "category": "Meat & Protein", "emoji": "🥩", "items": [{ "name": "Chicken breast", "qty": "2 kg", "price": 12.99 }] },
+    { "category": "Produce", "emoji": "🥦", "items": [] },
+    { "category": "Dairy & Eggs", "emoji": "🧀", "items": [] },
+    { "category": "Pantry", "emoji": "🥫", "items": [] },
+    { "category": "Grains", "emoji": "🍞", "items": [] },
+    { "category": "Condiments", "emoji": "🧂", "items": [] }
+  ]`;
+
+function pricingRules(country: string, store: string) {
+  return `PER-ITEM PRICING (for accuracy and consistency):
+- Reference prices for this country, to keep pricing realistic and consistent across different plans (adjust up/down for ${store} specifically, and for the exact quantity you list): ${PRICE_ANCHORS[country] || PRICE_ANCHORS.US}
+- Price every item as if you were reading real shelf tags at ${store}. Use realistic package sizes actually sold there (e.g. "2 kg", "1 dozen", "454 g") rather than odd amounts.
+- Prices should look like real prices (e.g. 6.49, 11.29) — avoid suspiciously flat numbers like 5.00, 10.00, 20.00 for everything.
+- Every item price must be greater than 0.`;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { family, budget, store, diet, cuisine, country, ingredients, recipeOnly, recipeName, familyProfiles } = await req.json();
+    const { family, budget, store, diet, cuisine, country, ingredients, recipeOnly, recipeName, familyProfiles,
+      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan } = await req.json();
 
     // ---------- Recipe only mode ----------
     if (recipeOnly && recipeName) {
@@ -75,8 +136,70 @@ Keep steps short and clear. 5-8 steps. 6-12 ingredients. Follow ${diet} diet res
       return NextResponse.json({ recipe });
     }
 
-    // ---------- Meal plan mode ----------
     const sym = country === "CA" ? "CA$" : "$";
+    const familyRules = Array.isArray(familyProfiles) && familyProfiles.length > 0
+      ? `IMPORTANT - Family restrictions (MUST follow):
+${familyProfiles.map((m: any) => `- ${m.name}: ${[...(m.diets || []), ...(m.allergies || [])].join(", ") || "No restrictions"}`).join("\n")}`
+      : "";
+
+    // ---------- Swap one meal ----------
+    if (swapMeal && swapMeal.day && swapMeal.type) {
+      const avoid = Array.isArray(avoidMeals) ? avoidMeals.slice(0, 40).join(", ") : "";
+      const swapPrompt = `Suggest ONE replacement ${swapMeal.type} for ${swapMeal.day} in a weekly meal plan.
+Current meal to replace: "${swapMeal.name || ""}" — the new meal must be clearly different.
+Family: ${family} people | Diet: ${diet} | Cuisine: ${cuisine}
+${familyRules}
+Do NOT repeat any of these meals already in the plan: ${avoid}
+Return ONLY valid JSON (no markdown):
+{ "meal": { "type": "${swapMeal.type}", "name": "Beef Stir-Fry with Rice", "photoQuery": "beef stir fry rice", "calories": "620 kcal", "tip": "Use leftover rice tomorrow" } }
+"photoQuery": 2-4 plain English words naming what is visibly on the plate. "calories" is an estimate per serving.`;
+      const out = await callClaude(swapPrompt, 400);
+      const meal = out?.meal;
+      if (!meal || typeof meal.name !== "string" || !meal.name.trim()) {
+        return NextResponse.json({ error: "No replacement meal returned" }, { status: 502 });
+      }
+      meal.type = swapMeal.type;
+      return NextResponse.json({ meal });
+    }
+
+    // ---------- Rebuild the shopping list from a final plan ----------
+    if (Array.isArray(shoppingFromPlan) && shoppingFromPlan.length > 0) {
+      const planText = shoppingFromPlan
+        .map((d: any) => `${d.day}: ${(d.meals || []).map((m: any) => `${m.type} - ${m.name}`).join("; ")}`)
+        .join("\n");
+      const haveNote = Array.isArray(ingredients) && ingredients.length > 0
+        ? `The user already has: ${ingredients.join(", ")}. Do NOT put these in the list.`
+        : "";
+      const shopPrompt = `Build ONE consolidated grocery list for this exact 7-day meal plan.
+Family: ${family} people | Budget: ${sym}${budget} | Store: ${store}
+${haveNote}
+
+Meal plan:
+${planText}
+
+Return ONLY valid JSON (no markdown):
+{
+  ${SHOPPING_SHAPE}
+}
+Rules:
+- Include every ingredient needed to cook the meals above, combined across meals (no duplicates).
+- The sum of all prices should be at or under ${sym}${budget}.
+${pricingRules(country, store)}`;
+      const shop = await callClaude(shopPrompt, 3500);
+      if (!Array.isArray(shop.shoppingList)) {
+        return NextResponse.json({ error: "No shopping list returned" }, { status: 502 });
+      }
+      let total = sumList(shop);
+      total = await trimToBudget(shop, total, Number(budget) || 0, sym, store);
+      const budgetNum = Number(budget) || 0;
+      return NextResponse.json({
+        shoppingList: shop.shoppingList,
+        totalCost: total,
+        savings: Math.max(0, Math.round((budgetNum - total) * 100) / 100),
+      });
+    }
+
+    // ---------- Meal plan mode ----------
 
     const ingredientNote = ingredients?.length > 0
       ? `The user already has: ${ingredients.join(", ")}. Build meals around these first, and do NOT put them in the shopping list (the user does not need to buy them).`
@@ -87,10 +210,27 @@ Keep steps short and clear. 5-8 steps. 6-12 ingredients. Follow ${diet} diet res
 ${familyProfiles.map((m: any) => `- ${m.name}: ${[...(m.diets || []), ...(m.allergies || [])].join(", ") || "No restrictions"}`).join("\n")}`
       : "";
 
+    const pins: { day: string; type: string; name: string }[] = Array.isArray(pinnedMeals)
+      ? pinnedMeals.filter((p: any) => p && p.day && p.type && p.name).slice(0, 21)
+      : [];
+    const includes: string[] = Array.isArray(includeMeals)
+      ? includeMeals.filter((n: any) => typeof n === "string" && n.trim()).slice(0, 14)
+      : [];
+    const pinNote = pins.length > 0
+      ? `The user chose these meals. Put each one EXACTLY in this slot, with this exact name:
+${pins.map(p => `- ${p.day} ${p.type}: ${p.name}`).join("\n")}
+Build the other meals around them, and include their ingredients in the shopping list.`
+      : "";
+    const includeNote = includes.length > 0
+      ? `The user saved these dishes and wants them this week. Include each one once, with this exact name, in a sensible day and meal: ${includes.join(", ")}.`
+      : "";
+
     const prompt = `You are GoEat AI. Generate a 7-day meal plan.
 Family: ${family} people | Budget: ${sym}${budget} | Store: ${store} | Diet: ${diet} | Cuisine: ${cuisine}
 ${ingredientNote}
 ${familyNote}
+${pinNote}
+${includeNote}
 
 Return ONLY valid JSON (no markdown):
 {
@@ -110,10 +250,10 @@ Return ONLY valid JSON (no markdown):
     { "category": "Condiments", "emoji": "🧂", "items": [] }
   ],
   "wasteReduction": {
-    "mealsFromLeftovers": 5,
-    "estimatedWasteReduced": "2.1 kg",
-    "co2Saved": "3.8 kg CO2",
-    "moneySavedFromWaste": 14.20
+    "mealsFromLeftovers": <count of meals in THIS plan that reuse leftovers from an earlier meal>,
+    "estimatedWasteReduced": "<your rough estimate for THIS plan, e.g. '1.2 kg'>",
+    "co2Saved": "<your rough estimate for THIS plan>",
+    "moneySavedFromWaste": <your rough estimate in ${sym} for THIS plan, a number>
   }
 }
 HARD BUDGET RULE:
@@ -128,57 +268,27 @@ Other rules:
 - Follow ${diet} diet.
 - "photoQuery": 2-4 plain English words for finding a matching food photo. Name what is visibly on the plate, most distinctive item first (e.g. "zucchini noodles meat sauce", "bacon eggs mushrooms"). No cuisine labels, adjectives, or words like "leftover", "easy", "homemade".
 
-PER-ITEM PRICING (for accuracy and consistency):
-- Reference prices for this country, to keep pricing realistic and consistent across different plans (adjust up/down for ${store} specifically, and for the exact quantity you list): ${PRICE_ANCHORS[country] || PRICE_ANCHORS.US}
-- Price every item as if you were reading real shelf tags at ${store}. Use realistic package sizes actually sold there (e.g. "2 kg", "1 dozen", "454 g") rather than odd amounts.
-- Prices should look like real prices (e.g. 6.49, 11.29) — avoid suspiciously flat numbers like 5.00, 10.00, 20.00 for everything.
-- Every item price must be greater than 0.`;
+${pricingRules(country, store)}`;
 
     let result = await callClaude(prompt, 4500);
 
-    // ---------- Compute totals in code (not by the AI) ----------
-    const sumList = (r: any) => {
-      const list = Array.isArray(r.shoppingList) ? r.shoppingList : [];
-      let total = 0;
-      for (const cat of list) {
-        if (!Array.isArray(cat.items)) cat.items = [];
-        // Drop items with no real price (garbage output) and de-dupe by name.
-        const seen = new Set<string>();
-        cat.items = cat.items.filter((item: any) => {
-          const price = Number(String(item.price ?? "").replace(/[^0-9.]/g, "")) || 0;
-          item.price = Math.round(price * 100) / 100;
-          const key = String(item.name || "").trim().toLowerCase();
-          if (item.price <= 0 || !key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        for (const item of cat.items) total += item.price;
-      }
-      r.shoppingList = list;
-      return Math.round(total * 100) / 100;
-    };
-
-    let total = sumList(result);
-
-    // Safety net: if the model still blew past budget, ask it once to trim
-    // the exact list down rather than re-generating from scratch.
-    const budgetNum = Number(budget) || 0;
-    if (budgetNum > 0 && total > budgetNum) {
-      const trimPrompt = `This shopping list totals ${sym}${total}, which is over the ${sym}${budgetNum} budget.
-Shopping list JSON: ${JSON.stringify(result.shoppingList)}
-
-Return ONLY the corrected "shoppingList" as valid JSON (same shape, no markdown), edited so the sum of all prices is at or under ${sym}${budgetNum}. Reduce quantities, remove the least essential items, or substitute cheaper alternatives. Keep it realistic for ${store}.
-{ "shoppingList": [ ... ] }`;
-      try {
-        const trimmed = await callClaude(trimPrompt, 3000);
-        if (Array.isArray(trimmed.shoppingList)) {
-          result.shoppingList = trimmed.shoppingList;
-          total = sumList(result);
+    // ---------- Enforce the user's chosen slots ----------
+    if (pins.length > 0 && Array.isArray(result.mealPlan)) {
+      for (const p of pins) {
+        const day = result.mealPlan.find((d: any) => String(d.day).toLowerCase() === p.day.toLowerCase());
+        if (!day || !Array.isArray(day.meals)) continue;
+        const slot = day.meals.find((m: any) => m.type === p.type);
+        if (slot && slot.name !== p.name) {
+          Object.assign(slot, { name: p.name, photoQuery: undefined, calories: undefined, tip: undefined });
+        } else if (!slot) {
+          day.meals.push({ type: p.type, name: p.name });
         }
-      } catch {
-        // If the trim call fails, fall back to the original list/total as-is.
       }
     }
+
+    // ---------- Compute totals in code (not by the AI) ----------
+    let total = sumList(result);
+    total = await trimToBudget(result, total, Number(budget) || 0, sym, store);
 
     result.totalCost = total;
 
