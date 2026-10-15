@@ -63,6 +63,7 @@ export default function GoEatApp() {
   const [result, setResult] = useState<any>(null);
   const [tab, setTab] = useState("plan");
   const [openDays, setOpenDays] = useState<Record<string,boolean>>({"Monday":true});
+  const [planDay, setPlanDay] = useState("Monday");
   const [checked, setChecked] = useState<Record<string,boolean>>({});
   const [loadStep, setLoadStep] = useState(0);
   const [error, setError] = useState("");
@@ -177,7 +178,7 @@ export default function GoEatApp() {
     setView("week");
     setShowSaved(false);
     setTab("plan");
-    setOpenDays({ Monday: true });
+    setOpenDays({ Monday: true }); setPlanDay("Monday");
   }
 
   async function handleScan(file: File, mode: "fridge"|"receipt") {
@@ -283,7 +284,7 @@ export default function GoEatApp() {
       setIncludeMeals([]);
       setSelectedSaved([]);
       setChecked({});
-      setOpenDays({ Monday: true });
+      setOpenDays({ Monday: true }); setPlanDay("Monday");
       setTab("plan");
       // Auto-save last result
       persistResult(finalResult, true);
@@ -1531,8 +1532,91 @@ export default function GoEatApp() {
                 )
               )}
               {swapError && <div role="alert" style={{ margin: "10px 22px 0", fontSize: 13, color: "#B4400A" }}>{swapError}</div>}
+              {/* Week view: day tabs + photo cards (one day at a time) */}
+              {(() => {
+                const days: any[] = result.mealPlan || [];
+                const cur = days.find(d => d.day === planDay) || days[0];
+                if (!cur) return null;
+                const idx = days.indexOf(cur);
+                const nextDay = days[idx + 1];
+                const MEAL_ICON: Record<string, string> = { Breakfast: "🍳", Lunch: "🥗", Dinner: "🍲" };
+                const MEAL_BG: Record<string, string> = { Breakfast: "linear-gradient(135deg,#FFE9B8,#FFD48A)", Lunch: "linear-gradient(135deg,#CDEBF2,#A9D9E6)", Dinner: "linear-gradient(135deg,#D7EFD9,#B3DDB7)" };
+                return (
+                  <div>
+                    <div style={{ padding: "16px 22px 10px", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ fontWeight: 900, fontSize: 20, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E" }}>📅 Your 7-Day Plan</div>
+                      {typeof result.totalCost === "number" && result.totalCost > 0 && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#2E7D32", whiteSpace: "nowrap" as const }}>~{result.sym}{(result.totalCost / 7).toFixed(2)}/day <span style={{ color: "#999", fontWeight: 600 }}>est.</span></div>
+                      )}
+                    </div>
+                    <div role="tablist" aria-label="Days" style={{ display: "flex", gap: 6, padding: "0 16px 12px", overflowX: "auto", scrollbarWidth: "none" as const }}>
+                      {days.map(d => {
+                        const on = d === cur;
+                        const thumb = (d.meals || []).map((m: any) => mealPhotos[m.name]).find(Boolean);
+                        return (
+                          <button key={d.day} role="tab" aria-selected={on} aria-label={d.day}
+                            onClick={() => { setPlanDay(d.day); track("plan_day_viewed", { day: d.day }); }}
+                            style={{ flex: "1 0 46px", minWidth: 46, padding: "6px 0 8px", borderRadius: 16, border: on ? "2px solid #1A5C2E" : "2px solid transparent", background: on ? "#1A5C2E" : "#F3F7F3", color: on ? "white" : "#3F5F45", cursor: "pointer", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 4, fontFamily: "'Nunito', sans-serif" }}>
+                            <span style={{ fontSize: 13, fontWeight: 900 }}>{String(d.day).slice(0, 3)}</span>
+                            <span style={{ width: 30, height: 30, borderRadius: 10, overflow: "hidden", background: on ? "rgba(255,255,255,0.2)" : "#E1ECE2", display: "block" }}>
+                              {thumb && <img src={sizedPhoto(thumb, 80)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ padding: "0 22px 8px", fontWeight: 900, fontSize: 17, color: "#1A1A18", fontFamily: "'Nunito', sans-serif" }}>{cur.day}</div>
+                    <div style={{ padding: "0 16px", display: "flex", flexDirection: "column" as const, gap: 12 }}>
+                      {(cur.meals || []).map((m: any, j: number) => {
+                        const mc = mealColor(m.type);
+                        const photo = mealPhotos[m.name];
+                        return (
+                          <div key={j} onClick={() => openSheet({ name: m.name, meal: m.type, source: "plan", slot: { day: cur.day, type: m.type } })}
+                            style={{ borderRadius: 20, overflow: "hidden", background: "white", boxShadow: "0 2px 10px rgba(0,0,0,0.07)", border: "1px solid #EEF3EE", cursor: "pointer" }}>
+                            <div style={{ position: "relative", height: 150, background: MEAL_BG[m.type] || "#EEE" }}>
+                              {photo ? (
+                                <img src={sizedPhoto(photo, 800)} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                              ) : (
+                                <div aria-hidden="true" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 54 }}>{MEAL_ICON[m.type] || "🍽️"}</div>
+                              )}
+                              <div style={{ position: "absolute", top: 10, left: 10, fontSize: 12, fontWeight: 900, padding: "4px 10px", borderRadius: 99, background: mc.bg, color: mc.color, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>{m.type}</div>
+                            </div>
+                            <div style={{ padding: "10px 14px 12px" }}>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: "#1A1A18", lineHeight: 1.3, fontFamily: "'Nunito', sans-serif" }}>{m.name}</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const, marginTop: 4, fontSize: 13, color: "#888" }}>
+                                {m.calories && <span style={{ fontWeight: 700, color: "#F97316" }}>{m.calories} <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600 }}>est.</span></span>}
+                                {m.tip && <span>💡 {m.tip}</span>}
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+                                <button onClick={e => { e.stopPropagation(); swapMeal(cur.day, m.type, m.name); }} disabled={!!swapping}
+                                  aria-label={`Swap ${cur.day} ${m.type}`}
+                                  style={{ minHeight: 36, padding: "0 14px", borderRadius: 99, border: "1.5px solid #FFD2B3", background: "white", color: "#E8620A", fontWeight: 800, fontSize: 13, cursor: swapping ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                                  {swapping === `${cur.day}-${m.type}` ? "Swapping…" : "↻ Swap"}
+                                </button>
+                                <span style={{ fontSize: 14, fontWeight: 800, color: "#2E7D32" }}>Recipe →</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {nextDay && (
+                      <div style={{ padding: "14px 16px 0" }}>
+                        <button onClick={() => { setPlanDay(nextDay.day); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                          style={{ width: "100%", minHeight: 48, borderRadius: 99, border: "1.5px solid #C8E6C9", background: "#F7FBF7", color: "#1A5C2E", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                          Next: {nextDay.day} →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Budget summary */}
+              <div style={{ height: 8, background: "#F7FBF7", margin: "20px 0 0" }} />
+              <div style={{ padding: "16px 22px 0", fontWeight: 900, fontSize: 18, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E" }}>💰 This week&apos;s estimate</div>
               {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "16px 22px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "12px 22px 16px" }}>
                 {[
                   { icon: "🛒", val: typeof result.totalCost === "number" ? `${result.sym}${result.totalCost.toFixed(2)}` : "…", lbl: "Est. Grocery Cost", note: `of ${result.sym}${result.budget} budget`, color: "#2E7D32" },
                   { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
@@ -1553,68 +1637,6 @@ export default function GoEatApp() {
                 💡 Prices and savings are <strong>estimates</strong>. Actual costs may vary by location and store.
               </div>
 
-              {/* Meal Plan */}
-              <div style={{ height: 8, background: "#F7FBF7", margin: "0 0 4px" }} />
-              <div style={{ padding: "6px 22px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontWeight: 900, fontSize: 18, fontFamily: "'Nunito', sans-serif", color: "#1A5C2E" }}>📅 7-Day Meal Plan</div>
-                <div style={{ fontSize: 14, fontWeight: 700, background: "#E8F5E9", color: "#2E7D32", padding: "4px 10px", borderRadius: 99 }}>7 days</div>
-              </div>
-              <div style={{ padding: "0 22px", display: "flex", flexDirection: "column" as const, gap: 10 }}>
-                {result.mealPlan?.map((day: any, i: number) => (
-                  <div key={i} style={{ border: "1.5px solid #E8F5E9", borderRadius: 24, overflow: "hidden" }}>
-                    <div onClick={() => setOpenDays(p => ({ ...p, [day.day]: !p[day.day] }))}
-                      style={{ padding: "12px 16px", background: "#E8F5E9", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E" }}>{day.day}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "#388E3C" }}>{day.meals?.length} meals</div>
-                        <div style={{ fontSize: 14, color: "#388E3C" }}>{openDays[day.day] ? "▲" : "▼"}</div>
-                      </div>
-                    </div>
-                    {openDays[day.day] && (
-                      <div style={{ background: "white" }}>
-                        {day.meals?.map((m: any, j: number) => {
-                          const mc = mealColor(m.type);
-                          return (
-                            <div key={j} onClick={() => openSheet({ name: m.name, meal: m.type, source: "plan", slot: { day: day.day, type: m.type } })}
-                              style={{ borderBottom: j < day.meals.length - 1 ? "1px solid #E8F5E9" : "none", cursor: "pointer" }}>
-                              {/* Food photo */}
-                              {mealPhotos[m.name] && (
-                                <div style={{ position: "relative", overflow: "hidden", height: 110 }}>
-                                  <img src={sizedPhoto(mealPhotos[m.name], 800)} alt={m.name}
-                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)" }} />
-                                  <div style={{ position: "absolute", bottom: 8, left: 12, right: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <div style={{ fontWeight: 800, fontSize: 14, color: "white", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{m.name}</div>
-                                    <div style={{ fontSize: 14, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: mc.bg, color: mc.color }}>{m.type}</div>
-                                  </div>
-                                </div>
-                              )}
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 16px" }}>
-                                {!mealPhotos[m.name] && <div style={{ minWidth: 62, padding: "3px 8px", borderRadius: 6, fontSize: 14, fontWeight: 800, textTransform: "uppercase" as const, textAlign: "center" as const, flexShrink: 0, marginTop: 2, background: mc.bg, color: mc.color }}>{m.type}</div>}
-                                <div style={{ flex: 1 }}>
-                                  {!mealPhotos[m.name] && <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35, marginBottom: 4 }}>{m.name}</div>}
-                                  {m.tip && <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>💡 {m.tip}</div>}
-                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                                    {m.calories ? <div style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>{m.calories} <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600 }}>est.</span></div> : <span />}
-                                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                      <button onClick={e => { e.stopPropagation(); swapMeal(day.day, m.type, m.name); }} disabled={!!swapping}
-                                        aria-label={`Swap ${day.day} ${m.type}`}
-                                        style={{ minHeight: 34, padding: "0 12px", borderRadius: 99, border: "1.5px solid #FFD2B3", background: "white", color: "#E8620A", fontWeight: 800, fontSize: 13, cursor: swapping ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                                        {swapping === `${day.day}-${m.type}` ? "Swapping…" : "↻ Swap"}
-                                      </button>
-                                      <div style={{ fontSize: 14, fontWeight: 700, color: "#2E7D32" }}>Recipe →</div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
               <div style={{ height: 20 }} />
             </div>
           )}
