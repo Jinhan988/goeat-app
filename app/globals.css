@@ -20,3 +20,7 @@ body {
   0% { opacity:1; }
   100% { opacity:0; pointer-events:none; }
 }
+
+/* Recipe sheet height: fit the visible screen (iPhone browser bars included) */
+.goeat-sheet { max-height: 92vh; }
+@supports (height: 100dvh) { .goeat-sheet { max-height: calc(100dvh - 24px); } }

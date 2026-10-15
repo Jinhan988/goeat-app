@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MealType } from "../lib/feed";
 import { DAYS, MEAL_TYPES } from "../lib/storage";
 
@@ -49,6 +49,17 @@ export default function RecipeSheet(p: Props) {
   const [type, setType] = useState<MealType>(dish.meal || "Dinner");
   const [added, setAdded] = useState<string | null>(null);
 
+  // Keep the page behind the sheet from scrolling (on iPhone that scroll can
+  // move the browser bars and push the top of the sheet off screen).
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") p.onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const timeLabel = data && (data.prepTime || data.cookTime)
     ? [data.prepTime && `Prep ${data.prepTime}`, data.cookTime && `Cook ${data.cookTime}`].filter(Boolean).join(" · ")
     : dish.minutes ? `~${dish.minutes} min` : "";
@@ -56,14 +67,18 @@ export default function RecipeSheet(p: Props) {
   return (
     <div role="dialog" aria-modal="true" aria-label={dish.name} onClick={p.onClose}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "flex-end" }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 430, margin: "0 auto", maxHeight: "92vh", overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} className="goeat-sheet"
+        style={{ background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 430, margin: "0 auto", overflowY: "auto", overscrollBehavior: "contain" }}>
+
+        {/* Close button stays pinned at the top while the recipe scrolls */}
+        <div style={{ position: "sticky", top: 0, height: 0, zIndex: 10 }}>
+          <button onClick={p.onClose} aria-label="Close"
+            style={{ position: "absolute", top: 12, right: 12, width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.6)", color: "white", fontSize: 20, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>✕</button>
+        </div>
 
         {/* Photo */}
         <div style={{ position: "relative", height: p.photo ? 300 : 120, background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: "24px 24px 0 0", overflow: "hidden" }}>
           {p.photo && <img src={p.photo} alt={dish.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-          <button onClick={p.onClose} aria-label="Close"
-            style={{ position: "absolute", top: 12, right: 12, width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.5)", color: "white", fontSize: 18, cursor: "pointer" }}>✕</button>
           {p.credit && (
             <div style={{ position: "absolute", bottom: 6, right: 10, fontSize: 11, color: "rgba(255,255,255,0.85)", textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
               Photo by <a href={`${p.credit.link}?utm_source=goeat_ai&utm_medium=referral`} target="_blank" rel="noopener noreferrer" style={{ color: "white" }}>{p.credit.name}</a> on <a href="https://unsplash.com/?utm_source=goeat_ai&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: "white" }}>Unsplash</a>
