@@ -93,6 +93,8 @@ export default function GoEatApp() {
   const [shopUpdating, setShopUpdating] = useState(false);
   const [shopError, setShopError] = useState("");
   const [editSettings, setEditSettings] = useState(false);
+  // Feed dishes whose photo failed to load are hidden rather than shown blank.
+  const [brokenPhotos, setBrokenPhotos] = useState<Record<string, boolean>>({});
   // Logo splash on entry (once per browser session). Home renders underneath,
   // so photos are already loading while the logo shows.
   const [splash, setSplash] = useState<"show" | "fading" | "done">("show");
@@ -518,7 +520,7 @@ export default function GoEatApp() {
   // ---------- Feed ----------
   function feedList(): FeedDish[] {
     const q = search.trim().toLowerCase();
-    let list = FEED.filter(d => dishMatches(d, feedFilter));
+    let list = FEED.filter(d => dishMatches(d, feedFilter) && !brokenPhotos[d.name]);
     if (q) list = list.filter(d => `${d.name} ${d.cuisine}`.toLowerCase().includes(q));
     if (feedFilter === "forYou") {
       // Rank by overlap with what the user saved and their chosen cuisines.
@@ -1203,6 +1205,7 @@ export default function GoEatApp() {
                                 </>
                               ) : mealPhotos[it.d.name] && (
                                 <img src={sizedPhoto(mealPhotos[it.d.name], 500)} alt={it.d.name} loading="lazy"
+                                  onError={() => { setBrokenPhotos(p => ({ ...p, [it.d.name]: true })); track("feed_photo_failed", { recipe: it.d.name }); }}
                                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                               )}
                             </div>
