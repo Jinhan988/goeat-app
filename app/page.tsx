@@ -36,13 +36,6 @@ const CUISINES = [
   {id:"Mediterranean",icon:"🫒"},{id:"Middle Eastern",icon:"🧆"},
 ];
 
-const MERITS = [
-  { icon:"📸", title:"Fridge Scan", desc:"Take one photo of your fridge. GoEat AI instantly recognizes what you have — no typing needed." },
-  { icon:"🤖", title:"7-Day Meal Plan", desc:"Not just one recipe. A full week of meals decided for you — breakfast, lunch, and dinner." },
-  { icon:"🥗", title:"Nutrition Info", desc:"Calories and nutritional info for every meal. Eat better without counting anything." },
-  { icon:"🛒", title:"Smart Shopping List", desc:"Only shows what you're missing. Items you already have are automatically excluded." },
-  { icon:"💰", title:"Cost & Savings", desc:"See your estimated grocery cost and how much you're saving compared to eating out." },
-];
 
 export default function GoEatApp() {
   const [screen, setScreen] = useState<"setup"|"loading"|"results">("setup");
@@ -95,6 +88,7 @@ export default function GoEatApp() {
   const [editSettings, setEditSettings] = useState(false);
   // Feed dishes whose photo failed to load are hidden rather than shown blank.
   const [brokenPhotos, setBrokenPhotos] = useState<Record<string, boolean>>({});
+  const [showTopBtn, setShowTopBtn] = useState(false);
   // Logo splash on entry (once per browser session). Home renders underneath,
   // so photos are already loading while the logo shows.
   const [splash, setSplash] = useState<"show" | "fading" | "done">("show");
@@ -105,6 +99,7 @@ export default function GoEatApp() {
   const [scanError, setScanError] = useState("");
   const fridgeRef = useRef<HTMLInputElement>(null);
   const splashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const feedEndRef = useRef<HTMLDivElement>(null);
   const receiptRef = useRef<HTMLInputElement>(null);
   const manualRef = useRef<HTMLDivElement>(null);
   const scanPreviewRef = useRef<HTMLDivElement>(null);
@@ -146,6 +141,26 @@ export default function GoEatApp() {
       if (last.shoppingStale) setShoppingStale(true);
     }
   }, []);
+
+  // Floating "back to top" once the user has scrolled far down the feed
+  useEffect(() => {
+    const onScroll = () => setShowTopBtn(window.scrollY > 1500);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Count how many people reach the end of the feed (once per page view)
+  useEffect(() => {
+    const el = feedEndRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    let sent = false;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !sent) { sent = true; track("feed_end_seen", { picks: weekPicks.length }); io.disconnect(); }
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, feedFilter, search]);
 
   // Keep the result tabs in sync with the bottom navigation
   useEffect(() => {
@@ -1230,68 +1245,32 @@ export default function GoEatApp() {
             })()}
           </div>
 
-          {/* 5 Merits */}
-          <div style={{ padding: "20px 22px 0" }}>
-            <div style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.08em", color: "#2E7D32", marginBottom: 12, textAlign: "center" }}>
-              One app. Five problems solved.
+          {/* End of feed: act right here instead of scrolling back up */}
+          {feedList().length > 0 && (
+            <div ref={feedEndRef} style={{ margin: "18px 12px 24px", padding: "22px 18px", borderRadius: 24, background: "linear-gradient(160deg,#1A5C2E,#2E7D32)", color: "white", textAlign: "center" as const }}>
+              <div aria-hidden="true" style={{ fontSize: 34 }}>🍽️</div>
+              <div style={{ fontWeight: 900, fontSize: 20, fontFamily: "'Nunito', sans-serif", marginTop: 4 }}>
+                {weekPicks.length > 0 ? `You picked ${weekPicks.length} dish${weekPicks.length > 1 ? "es" : ""}` : "You've seen them all!"}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.85, marginTop: 4, lineHeight: 1.45 }}>
+                {weekPicks.length > 0 ? "We'll plan the rest of your week and make one grocery list." : "Turn the dishes you liked into this week's meal plan."}
+              </div>
+              <button onClick={() => { track("build_plan_clicked", { from: "feed_end" }); setView("week"); window.scrollTo(0, 0); }}
+                style={{ width: "100%", minHeight: 52, marginTop: 16, border: "none", borderRadius: 99, background: "#F97316", color: "white", fontWeight: 900, fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif", boxShadow: "0 6px 16px rgba(0,0,0,0.2)" }}>
+                🗓 {weekPicks.length > 0 ? `Plan my week with ${weekPicks.length}` : "Plan my week"}
+              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <button onClick={() => { track("scan_clicked", { from: "feed_end" }); fridgeRef.current?.click(); }}
+                  style={{ flex: 1, minHeight: 46, borderRadius: 99, border: "1.5px solid rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.12)", color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>📸 Scan fridge</button>
+                <button onClick={() => { track("receipt_clicked", { from: "feed_end" }); receiptRef.current?.click(); }}
+                  style={{ flex: 1, minHeight: 46, borderRadius: 99, border: "1.5px solid rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.12)", color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>🧾 Scan receipt</button>
+              </div>
+              <button onClick={() => { track("back_to_top_clicked", { from: "feed_end" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                style={{ marginTop: 14, minHeight: 40, padding: "0 16px", border: "none", background: "none", color: "white", fontWeight: 800, fontSize: 14, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                ↑ Back to top
+              </button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-              {MERITS.map((m, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", background: "#F1F8E9", borderRadius: 24, border: "1px solid #C8E6C9" }}>
-                  <div style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{m.icon}</div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 3 }}>{m.title}</div>
-                    <div style={{ fontSize: 14, color: "#666", lineHeight: 1.5 }}>{m.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Why GoEat AI */}
-          <div style={{ margin: "20px 22px 0", background: "#F1F8E9", border: "1.5px solid #C8E6C9", borderRadius: 24, padding: "16px 18px" }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1A5C2E", marginBottom: 10 }}>✨ Why GoEat AI?</div>
-
-            {/* 4 problems solved (moved from hero) */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-              {[
-                { emoji: "🤔", text: "What to eat?" },
-                { emoji: "🛒", text: "What to buy?" },
-                { emoji: "💰", text: "How much to spend?" },
-                { emoji: "🗑️", text: "Stop wasting food" },
-              ].map(({ emoji, text }) => (
-                <div key={text} style={{ background: "white", borderRadius: 16, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, border: "1.5px solid #C8E6C9" }}>
-                  <span style={{ fontSize: 18 }}>{emoji}</span>
-                  <span style={{ fontSize: 14, color: "#1A5C2E", fontWeight: 700 }}>{text}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ fontSize: 13, color: "#1A5C2E", fontWeight: 700, marginBottom: 10 }}>
-              More than a recipe. It&apos;s your complete meal workflow.
-            </div>
-            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" as const, gap: 6, marginBottom: 10 }}>
-              {["📸 Photo","🤖 7-day plan","🍽️ Meals","🥗 Calories","🛒 Shopping list","💰 Cost & savings"].map((step, i, arr) => (
-                <span key={step} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1A5C2E", background: "white", padding: "4px 10px", borderRadius: 99, border: "1.5px solid #C8E6C9" }}>{step}</span>
-                  {i < arr.length - 1 && <span style={{ color: "#81C784", fontWeight: 700 }}>→</span>}
-                </span>
-              ))}
-            </div>
-            <div style={{ fontSize: 14, color: "#2E7D32", fontWeight: 700 }}>
-              All in one tap. Automatically connected.
-            </div>
-
-            <div style={{ fontSize: 13, color: "#999", marginTop: 12 }}>Powered by Claude AI · US &amp; Canada</div>
-          </div>
-
-          {/* Give Back */}
-          <div style={{ margin: "22px 22px 32px", background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: 22, padding: 20, color: "white" }}>
-            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#81C784", marginBottom: 8 }}>❤️ GoEatAI Gives Back</div>
-            <div style={{ fontWeight: 900, fontSize: 18, fontFamily: "'Nunito', sans-serif", marginBottom: 6 }}>Eat Smart. Give Back.</div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>A portion of every Premium subscription supports food banks and hunger relief programs.</div>
-            <div style={{ fontSize: 14, color: "#81C784", textAlign: "center", marginTop: 12 }}>❤️ &ldquo;A portion of GoEatAI profits supports food charities.&rdquo;</div>
-          </div>
+          )}
         </div>
       )}
 
@@ -1797,9 +1776,6 @@ export default function GoEatApp() {
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>
-              ❤️ <strong style={{ color: "white" }}>GoEatAI Gives Back.</strong> A portion of Premium subscriptions supports food banks worldwide.
-            </div>
           </div>
 
           <div style={{ padding: "4px 22px 32px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1815,6 +1791,15 @@ export default function GoEatApp() {
           </div>
         </div>
       )}
+      {/* Floating back-to-top on the Home feed */}
+      {screen !== "loading" && view === "home" && !sheet && showTopBtn && (
+        <button onClick={() => { track("back_to_top_clicked", { from: "floating" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          aria-label="Back to top"
+          style={{ position: "fixed", right: "max(14px, calc(50vw - 201px))", bottom: (result || weekPicks.length > 0) ? 132 : 84, zIndex: 141, width: 46, height: 46, borderRadius: "50%", border: "none", background: "rgba(26,92,46,0.92)", color: "white", fontSize: 20, fontWeight: 900, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}>
+          ↑
+        </button>
+      )}
+
       {/* This-week tray — browsing always leads to the plan */}
       {screen !== "loading" && view === "home" && !sheet && (result || weekPicks.length > 0) && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 72, zIndex: 140, padding: "0 12px" }}>
