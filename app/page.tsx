@@ -93,12 +93,16 @@ export default function GoEatApp() {
   const [shopUpdating, setShopUpdating] = useState(false);
   const [shopError, setShopError] = useState("");
   const [editSettings, setEditSettings] = useState(false);
+  // Logo splash on entry (once per browser session). Home renders underneath,
+  // so photos are already loading while the logo shows.
+  const [splash, setSplash] = useState<"show" | "fading" | "done">("show");
   const [swapping, setSwapping] = useState<string | null>(null);
   const [swapError, setSwapError] = useState("");
   const [selectingSaved, setSelectingSaved] = useState(false);
   const [selectedSaved, setSelectedSaved] = useState<string[]>([]);
   const [scanError, setScanError] = useState("");
   const fridgeRef = useRef<HTMLInputElement>(null);
+  const splashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const receiptRef = useRef<HTMLInputElement>(null);
   const manualRef = useRef<HTMLDivElement>(null);
   const scanPreviewRef = useRef<HTMLDivElement>(null);
@@ -106,11 +110,19 @@ export default function GoEatApp() {
   const sym = country === "CA" ? "CA$" : "$";
   const stores = country === "CA" ? CA_STORES : US_STORES;
 
-  // No splash screen: visitors see the discovery feed immediately.
+  // Short logo splash on first entry per session; the feed loads underneath.
 
   // Track app open once on mount
   useEffect(() => {
     track("app_view");
+    let seen = false;
+    try { seen = sessionStorage.getItem("goeatai_splash_seen") === "1"; sessionStorage.setItem("goeatai_splash_seen", "1"); } catch {}
+    if (seen) setSplash("done");
+    else {
+      const t1 = setTimeout(() => setSplash("fading"), 1600);
+      const t2 = setTimeout(() => setSplash("done"), 2000);
+      splashTimers.current = [t1, t2];
+    }
   }, []);
 
   // Load saved plans on mount
@@ -786,6 +798,20 @@ export default function GoEatApp() {
 
   return (
     <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", background: "#FFFFFF", boxShadow: "0 0 40px rgba(0,0,0,0.08)", fontFamily: "'Nunito Sans', sans-serif", paddingBottom: 150 }}>
+      {/* SPLASH */}
+      {splash !== "done" && (
+        <div role="presentation" onClick={() => { splashTimers.current?.forEach(clearTimeout); setSplash("fading"); setTimeout(() => setSplash("done"), 400); }}
+          style={{ position: "fixed", inset: 0, background: "white", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            animation: splash === "fading" ? "splashFadeOut 0.4s ease forwards" : undefined }}>
+          <img src="/logo.webp" alt="GoEat AI" style={{ width: 180, height: 180, objectFit: "contain", marginBottom: 16, animation: "popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }} />
+          <div style={{ fontSize: 14, color: "#888", fontWeight: 600, marginTop: 8, fontFamily: "'Nunito Sans', sans-serif", animation: "fadeUp 0.6s ease 0.3s both" }}>Less thinking. Less waste. Better eating.</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 48, animation: "fadeIn 0.6s ease 0.6s both" }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#C8E6C9", animation: `pulse 1.2s ease ${i * 0.2}s infinite` }} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* RECIPE DETAIL */}
       {sheet && (
