@@ -89,6 +89,7 @@ export default function GoEatApp() {
   // Feed dishes whose photo failed to load are hidden rather than shown blank.
   const [brokenPhotos, setBrokenPhotos] = useState<Record<string, boolean>>({});
   const [showTopBtn, setShowTopBtn] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
   // Logo splash on entry (once per browser session). Home renders underneath,
   // so photos are already loading while the logo shows.
   const [splash, setSplash] = useState<"show" | "fading" | "done">("show");
@@ -132,6 +133,25 @@ export default function GoEatApp() {
       const profiles = localStorage.getItem("goeatai_family_profiles");
       if (profiles) setFamilyProfiles(JSON.parse(profiles));
     } catch {}
+    const st = readJSON<any>(KEYS.settings, null);
+    if (st && (st.country === "CA" || st.country === "US")) {
+      setCountry(st.country);
+      if (typeof st.family === "number") setFamily(st.family);
+      if (typeof st.budget === "string") setBudget(st.budget);
+      if (typeof st.store === "string") setStore(st.store);
+      if (Array.isArray(st.diets)) setDiets(st.diets);
+      if (Array.isArray(st.cuisines)) setCuisines(st.cuisines);
+    } else {
+      // First visit: guess the country from the phone's time zone.
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        const CA_TZ = ["Toronto", "Montreal", "Vancouver", "Edmonton", "Calgary", "Winnipeg", "Regina", "Halifax", "St_Johns", "Moncton", "Whitehorse", "Yellowknife", "Iqaluit", "Glace_Bay", "Goose_Bay", "Swift_Current", "Dawson_Creek", "Fort_Nelson", "Rankin_Inlet", "Cambridge_Bay", "Inuvik", "Atikokan", "Blanc-Sablon", "Creston", "Dawson", "Resolute", "Thunder_Bay", "Nipigon", "Rainy_River", "Pangnirtung"];
+        const isCA = tz.startsWith("America/") && CA_TZ.some(c => tz.endsWith("/" + c));
+        const isUS = !isCA && (/^America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Boise|Juneau|Adak|Indiana|Kentucky|North_Dakota|Menominee|Nome|Sitka|Yakutat|Metlakatla)/.test(tz) || tz === "Pacific/Honolulu");
+        if (isUS) { setCountry("US"); setStore(US_STORES[0]); }
+      } catch {}
+    }
+    setSettingsReady(true);
     setSavedRecipes(readJSON<SavedRecipe[]>(KEYS.savedRecipes, []));
     setWeekPicks(readJSON<WeekPick[]>(KEYS.weekPicks, []));
     setExtraItems(readJSON<ExtraItem[]>(KEYS.extraItems, []));
@@ -141,6 +161,14 @@ export default function GoEatApp() {
       if (last.shoppingStale) setShoppingStale(true);
     }
   }, []);
+
+  // Remember plan settings for next time
+  useEffect(() => {
+    // Only after the saved settings have been loaded (and rendered), so the
+    // defaults never overwrite them.
+    if (!settingsReady) return;
+    writeJSON(KEYS.settings, { country, family, budget, store, diets, cuisines });
+  }, [settingsReady, country, family, budget, store, diets, cuisines]);
 
   // Floating "back to top" once the user has scrolled far down the feed
   useEffect(() => {
@@ -1357,13 +1385,43 @@ export default function GoEatApp() {
                 ))}
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, padding: "10px 14px", borderRadius: 14, background: "#F7FAF7" }}>
-              <span style={{ fontSize: 14, color: "#444", fontWeight: 700, minWidth: 0 }}>
-                💰 {sym}{budget || "150"}/week · {store}{diets.length ? ` · ${diets.join(", ")}` : ""}{cuisines.length ? ` · ${cuisines.join(", ")}` : ""}
+            {/* Budget and store, also without opening Edit */}
+            <div role="group" aria-label="Weekly budget" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#1A5C2E", flexShrink: 0, marginRight: 2 }}>💰 Budget</span>
+              {["100", "150", "200", "250", "300"].map(b => {
+                const on = (budget || "150") === b;
+                return (
+                  <button key={b} aria-pressed={on} aria-label={`${sym}${b} per week`}
+                    onClick={() => { setBudget(b); track("quick_setting_changed", { setting: "budget", value: b }); }}
+                    style={{ flex: 1, minWidth: 0, minHeight: 44, borderRadius: 12, border: `1.5px solid ${on ? "#1A5C2E" : "#E3E3E3"}`, background: on ? "#1A5C2E" : "white", color: on ? "white" : "#555", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif", padding: 0 }}>
+                    {b}
+                  </button>
+                );
+              })}
+            </div>
+            {budget && !["100", "150", "200", "250", "300"].includes(budget) && (
+              <div style={{ fontSize: 12.5, color: "#666", marginTop: 4, paddingLeft: 2 }}>Custom budget: {sym}{budget}/week</div>
+            )}
+            <div role="group" aria-label="Store" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, overflowX: "auto", scrollbarWidth: "none" as const, paddingBottom: 2 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#1A5C2E", flexShrink: 0, marginRight: 2 }}>🏪 Store</span>
+              {stores.map(st => {
+                const on = store === st;
+                return (
+                  <button key={st} aria-pressed={on}
+                    onClick={() => { setStore(st); track("quick_setting_changed", { setting: "store", value: st }); }}
+                    style={{ flex: "0 0 auto", minHeight: 40, padding: "0 12px", borderRadius: 99, border: `1.5px solid ${on ? "#1A5C2E" : "#E3E3E3"}`, background: on ? "#1A5C2E" : "white", color: on ? "white" : "#555", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" as const }}>
+                    {st}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, padding: "8px 12px", borderRadius: 14, background: "#F7FAF7" }}>
+              <span style={{ fontSize: 13, color: "#555", fontWeight: 700, minWidth: 0 }}>
+                {diets.length || cuisines.length ? [...diets, ...cuisines].join(" · ") : "Diet, cuisine, family allergies"}
               </span>
               <button onClick={() => setEditSettings(v => !v)} aria-expanded={editSettings}
                 style={{ flexShrink: 0, minHeight: 36, padding: "0 12px", borderRadius: 99, border: "1.5px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                {editSettings ? "Done" : "Edit"}
+                {editSettings ? "Done" : "More options"}
               </button>
             </div>
           </div>
