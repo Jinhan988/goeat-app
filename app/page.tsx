@@ -265,7 +265,7 @@ export default function GoEatApp() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals })
+        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true })
       });
 
       steps.forEach(clearTimeout);
@@ -277,14 +277,16 @@ export default function GoEatApp() {
 
       const finalResult = { ...data, family, budget: eff, store, diet: diets.join(" + ") || "No Restriction", cuisine: cuisines.join(" + ") || "Any Cuisine", country, sym, scannedCount: scannedItems.length, ingredients: scannedItems, pickedCount: weekPicks.length + includeMeals.length };
       setResult(finalResult);
-      setShoppingStale(false);
+      // Meals come back first; the shopping list is built right after in the background.
+      setShoppingStale(true);
+      setShopError("");
       setIncludeMeals([]);
       setSelectedSaved([]);
       setChecked({});
       setOpenDays({ Monday: true });
       setTab("plan");
       // Auto-save last result
-      try { localStorage.setItem("goeatai_last_result", JSON.stringify(finalResult)); } catch {}
+      persistResult(finalResult, true);
       track("plan_generated", {
         family,
         store,
@@ -474,7 +476,8 @@ export default function GoEatApp() {
   resultRef.current = result;
   useEffect(() => {
     if (!shoppingStale || shopUpdating || shopError || !result?.mealPlan) return;
-    const t = setTimeout(() => { track("shopping_list_auto_updated"); updateShoppingList(); }, 1200);
+    const first = !result.shoppingList;
+    const t = setTimeout(() => { track("shopping_list_auto_updated", { first }); updateShoppingList(); }, first ? 0 : 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shoppingStale, shopUpdating, shopError, result]);
@@ -1485,7 +1488,7 @@ export default function GoEatApp() {
               {shoppingStale && (
                 shopError ? (
                   <div role="alert" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#FFF0EC", border: "1.5px solid #F5B49A" }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#B4400A", marginBottom: 8 }}>{shopError} The list and cost don&apos;t include your new meals yet.</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#B4400A", marginBottom: 8 }}>{shopError} {result.shoppingList ? "The list and cost don't include your new meals yet." : ""}</div>
                     <button onClick={() => setShopError("")}
                       style={{ width: "100%", minHeight: 44, borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
                       Try again
@@ -1493,7 +1496,7 @@ export default function GoEatApp() {
                   </div>
                 ) : (
                   <div role="status" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#F1F8F1", border: "1.5px solid #C8E6C9", fontSize: 14, fontWeight: 700, color: "#1A5C2E" }}>
-                    🔄 Updating your shopping list for the new meals…
+                    {result.shoppingList ? "🔄 Updating your shopping list for the new meals…" : "🛒 Building your shopping list and cost estimate…"}
                   </div>
                 )
               )}
@@ -1501,8 +1504,8 @@ export default function GoEatApp() {
               {/* Stats */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "16px 22px" }}>
                 {[
-                  { icon: "🛒", val: `${result.sym}${typeof result.totalCost === "number" ? result.totalCost.toFixed(2) : result.totalCost}`, lbl: "Est. Grocery Cost", note: `of ${result.sym}${result.budget} budget`, color: "#2E7D32" },
-                  { icon: "💰", val: `${result.sym}${typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}`, lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
+                  { icon: "🛒", val: typeof result.totalCost === "number" ? `${result.sym}${result.totalCost.toFixed(2)}` : "…", lbl: "Est. Grocery Cost", note: `of ${result.sym}${result.budget} budget`, color: "#2E7D32" },
+                  { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
                   { icon: "♻️", val: result.wasteReduction?.estimatedWasteReduced, lbl: "Waste Reduced", note: "AI estimate", color: "#457b9d" },
                   { icon: "🍱", val: result.wasteReduction?.mealsFromLeftovers, lbl: "Leftover Meals", note: "planned this week", color: "#e63946" },
                 ].filter(x => x.val !== undefined && x.val !== null && x.val !== "").map(({ icon, val, lbl, note, color }) => (
@@ -1592,7 +1595,7 @@ export default function GoEatApp() {
               {shoppingStale && (
                 shopError ? (
                   <div role="alert" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#FFF0EC", border: "1.5px solid #F5B49A" }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#B4400A", marginBottom: 8 }}>{shopError} The list and cost don&apos;t include your new meals yet.</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#B4400A", marginBottom: 8 }}>{shopError} {result.shoppingList ? "The list and cost don't include your new meals yet." : ""}</div>
                     <button onClick={() => setShopError("")}
                       style={{ width: "100%", minHeight: 44, borderRadius: 99, border: "none", background: "#1A5C2E", color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
                       Try again
@@ -1600,7 +1603,7 @@ export default function GoEatApp() {
                   </div>
                 ) : (
                   <div role="status" style={{ margin: "14px 22px 0", padding: "12px 14px", borderRadius: 16, background: "#F1F8F1", border: "1.5px solid #C8E6C9", fontSize: 14, fontWeight: 700, color: "#1A5C2E" }}>
-                    🔄 Updating your shopping list for the new meals…
+                    {result.shoppingList ? "🔄 Updating your shopping list for the new meals…" : "🛒 Building your shopping list and cost estimate…"}
                   </div>
                 )
               )}
@@ -1653,7 +1656,7 @@ export default function GoEatApp() {
             <div style={{ padding: "16px 22px" }}>
               <div style={{ background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: 22, padding: 20, color: "white", marginBottom: 16 }}>
                 <div style={{ fontSize: 14, opacity: 0.7, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 6 }}>Estimated Total</div>
-                <div style={{ fontWeight: 900, fontSize: 36, fontFamily: "'Nunito', sans-serif" }}>{result.sym}{typeof result.totalCost === "number" ? result.totalCost.toFixed(2) : result.totalCost}</div>
+                <div style={{ fontWeight: 900, fontSize: 36, fontFamily: "'Nunito', sans-serif" }}>{typeof result.totalCost === "number" ? `${result.sym}${result.totalCost.toFixed(2)}` : "Calculating…"}</div>
                 <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }}>at {result.store} · family of {result.family}</div>
               </div>
 
@@ -1661,7 +1664,7 @@ export default function GoEatApp() {
               <div style={{ background: "#FFF4F0", border: "1.5px solid #F97316", borderRadius: 22, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 24 }}>💰</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>Estimated savings: {result.sym}{typeof result.savings === "number" ? result.savings.toFixed(2) : result.savings}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>Estimated savings: {typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…"}</div>
                   <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>left in your {result.sym}{result.budget} weekly budget</div>
                 </div>
               </div>

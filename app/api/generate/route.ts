@@ -106,7 +106,7 @@ function pricingRules(country: string, store: string) {
 export async function POST(req: NextRequest) {
   try {
     const { family, budget, store, diet, cuisine, country, ingredients, recipeOnly, recipeName, familyProfiles,
-      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan } = await req.json();
+      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly } = await req.json();
 
     // ---------- Recipe only mode ----------
     if (recipeOnly && recipeName) {
@@ -219,11 +219,41 @@ ${familyProfiles.map((m: any) => `- ${m.name}: ${[...(m.diets || []), ...(m.alle
     const pinNote = pins.length > 0
       ? `The user chose these meals. Put each one EXACTLY in this slot, with this exact name:
 ${pins.map(p => `- ${p.day} ${p.type}: ${p.name}`).join("\n")}
-Build the other meals around them, and include their ingredients in the shopping list.`
+Build the other meals around them${mealsOnly ? "" : ", and include their ingredients in the shopping list"}.`
       : "";
     const includeNote = includes.length > 0
       ? `The user saved these dishes and wants them this week. Include each one once, with this exact name, in a sensible day and meal: ${includes.join(", ")}.`
       : "";
+
+    // Fast path: meals only. The app shows the plan right away and builds the
+    // shopping list in the background with the shoppingFromPlan mode above.
+    const mealsPrompt = `You are GoEat AI. Generate a 7-day meal plan.
+Family: ${family} people | Budget: ${sym}${budget} for the week's groceries | Store: ${store} | Diet: ${diet} | Cuisine: ${cuisine}
+${ingredients?.length > 0 ? `The user already has: ${ingredients.join(", ")}. Build meals around these first.` : ""}
+${familyNote}
+${pinNote}
+${includeNote}
+
+Return ONLY valid JSON (no markdown):
+{
+  "mealPlan": [
+    { "day": "Monday", "meals": [
+      { "type": "Breakfast", "name": "Oatmeal with Banana", "photoQuery": "oatmeal banana bowl", "calories": "340 kcal", "tip": "Quick 5-min breakfast" },
+      { "type": "Lunch", "name": "Chicken Caesar Wrap", "photoQuery": "chicken caesar wrap", "calories": "480 kcal", "tip": "Great for lunchboxes" },
+      { "type": "Dinner", "name": "Beef Stir-Fry with Rice", "photoQuery": "beef stir fry rice", "calories": "620 kcal", "tip": "Use leftover rice tomorrow" }
+    ]}
+  ],
+  "wasteReduction": {
+    "mealsFromLeftovers": <count of meals in THIS plan that reuse leftovers from an earlier meal>,
+    "estimatedWasteReduced": "<your rough estimate for THIS plan, e.g. '1.2 kg'>"
+  }
+}
+Rules:
+- All 7 days Mon-Sun, 3 meals each.
+- Keep it affordable for the budget: reuse ingredients across meals and plan leftovers.
+- Follow ${diet} diet.
+- "tip": under 8 words. "calories": an estimate per serving.
+- "photoQuery": 2-4 plain English words naming what is visibly on the plate, most distinctive item first. No cuisine labels or adjectives.`;
 
     const prompt = `You are GoEat AI. Generate a 7-day meal plan.
 Family: ${family} people | Budget: ${sym}${budget} | Store: ${store} | Diet: ${diet} | Cuisine: ${cuisine}
@@ -270,7 +300,10 @@ Other rules:
 
 ${pricingRules(country, store)}`;
 
-    let result = await callClaude(prompt, 4500);
+    let result = await callClaude(mealsOnly ? mealsPrompt : prompt, mealsOnly ? 2500 : 4500);
+    if (!Array.isArray(result.mealPlan) || result.mealPlan.length === 0) {
+      return NextResponse.json({ error: "No meal plan returned" }, { status: 502 });
+    }
 
     // ---------- Enforce the user's chosen slots ----------
     if (pins.length > 0 && Array.isArray(result.mealPlan)) {
@@ -284,6 +317,10 @@ ${pricingRules(country, store)}`;
           day.meals.push({ type: p.type, name: p.name });
         }
       }
+    }
+
+    if (mealsOnly) {
+      return NextResponse.json({ mealPlan: result.mealPlan, wasteReduction: result.wasteReduction });
     }
 
     // ---------- Compute totals in code (not by the AI) ----------
