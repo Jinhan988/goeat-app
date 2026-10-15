@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { FEED, FEED_FILTERS, dishMatches, findFeedDish, feedPhotoUrl, feedPhotoCredit, type FeedDish, type MealType } from "./lib/feed";
+import { FEED, FEED_FILTERS, dishMatches, findFeedDish, feedPhotoUrl, feedPhotoCredit, feedVideoSrc, feedVideoPoster, type FeedDish, type MealType } from "./lib/feed";
+import FeedVideo from "./components/FeedVideo";
 import { DAYS, KEYS, readJSON, writeJSON, type SavedRecipe, type WeekPick, type ExtraItem } from "./lib/storage";
 import RecipeSheet, { type RecipeData, type SheetDish } from "./components/RecipeSheet";
 import BottomNav, { type View } from "./components/BottomNav";
@@ -459,13 +460,15 @@ export default function GoEatApp() {
       });
       const data = res.ok ? await res.json() : null;
       if (!data || !Array.isArray(data.shoppingList)) throw new Error("no list");
-      const cur = resultRef.current || result;
-      const stillStale = cur.mealPlan !== planSent; // plan changed again while we waited
+      const cur = resultRef.current;
+      // The plan was cleared or changed while we waited: drop this list.
+      // (If it changed, it is still marked stale and gets rebuilt.)
+      if (!cur || cur.mealPlan !== planSent) { setShopUpdating(false); return; }
       const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
       setResult(next);
       setChecked({});
-      setShoppingStale(stillStale);
-      persistResult(next, stillStale);
+      setShoppingStale(false);
+      persistResult(next, false);
     } catch {
       setShopError("Couldn't update the shopping list.");
     }
@@ -951,16 +954,16 @@ export default function GoEatApp() {
           <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "receipt"); e.target.value = ""; }} />
           <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 8, padding: "2px 12px 12px" }}>
             {[
-              { key: "plan", icon: "🗓", label: "Plan my week", sub: "7 days + grocery list", bg: "linear-gradient(150deg,#F97316,#E8620A)", fg: "white", subFg: "rgba(255,255,255,0.9)",
+              { key: "plan", icon: "🗓", label: "Plan my week", sub: "7 days + groceries", bg: "linear-gradient(150deg,#F97316,#E8620A)", fg: "white", subFg: "rgba(255,255,255,0.9)",
                 onClick: () => { track("build_plan_clicked", { from: "home_tile" }); setView("week"); } },
               { key: "fridge", icon: "📸", label: "Scan fridge", sub: "Use what you have", bg: "#E3F1DA", fg: "#1A5C2E", subFg: "#3F6B4B",
                 onClick: () => { track("scan_clicked", { from: "home_tile" }); fridgeRef.current?.click(); } },
-              { key: "receipt", icon: "🧾", label: "Scan receipt", sub: "Just went shopping?", bg: "#FFF3D6", fg: "#7A4A00", subFg: "#8A6A30",
+              { key: "receipt", icon: "🧾", label: "Scan receipt", sub: "After shopping", bg: "#FFF3D6", fg: "#7A4A00", subFg: "#8A6A30",
                 onClick: () => { track("receipt_clicked", { from: "home_tile" }); receiptRef.current?.click(); } },
             ].map(t => (
               <button key={t.key} onClick={t.onClick} aria-label={t.label}
-                style={{ minHeight: 98, borderRadius: 18, border: "none", background: t.bg, color: t.fg, padding: "12px 10px", textAlign: "left" as const, display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: "pointer", fontFamily: "'Nunito', sans-serif", boxShadow: t.key === "plan" ? "0 6px 16px rgba(232,98,10,0.3)" : "none" }}>
-                <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{t.icon}</span>
+                style={{ minHeight: 78, borderRadius: 18, border: "none", background: t.bg, color: t.fg, padding: "10px 10px", textAlign: "left" as const, display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: "pointer", fontFamily: "'Nunito', sans-serif", boxShadow: t.key === "plan" ? "0 6px 16px rgba(232,98,10,0.3)" : "none" }}>
+                <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1 }}>{t.icon}</span>
                 <span>
                   <span style={{ display: "block", fontWeight: 900, fontSize: 15, lineHeight: 1.15 }}>{t.label}</span>
                   <span style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: t.subFg, marginTop: 3, lineHeight: 1.25 }}>{t.sub}</span>
@@ -969,7 +972,7 @@ export default function GoEatApp() {
             ))}
           </div>
           <div style={{ padding: "0 14px 8px", fontSize: 13.5, color: "#555", fontWeight: 600 }}>
-            Tap <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: "#F97316", color: "white", fontWeight: 900, fontSize: 13 }}>＋</span> on dishes you like. We&apos;ll plan the rest of your week.
+            Tap <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: "#F97316", color: "white", fontWeight: 900, fontSize: 13 }}>＋</span> on dishes you like. We&apos;ll plan the rest.
           </div>
 
           {/* Category chips with photos */}
@@ -1165,8 +1168,14 @@ export default function GoEatApp() {
                         <div key={it.d.name} style={{ position: "relative" }}>
                           <button onClick={() => openFeedDish(it.d)}
                             style={{ display: "block", width: "100%", border: "none", padding: 0, background: "none", cursor: "pointer", textAlign: "left" as const, fontFamily: "'Nunito', sans-serif" }}>
-                            <div style={{ height: it.h, borderRadius: 18, overflow: "hidden", background: "#F1EEE8" }}>
-                              {mealPhotos[it.d.name] && (
+                            <div style={{ position: "relative", height: it.h, borderRadius: 18, overflow: "hidden", background: "#F1EEE8" }}>
+                              {it.d.video ? (
+                                <>
+                                  <FeedVideo src={feedVideoSrc(it.d.video)} poster={feedVideoPoster(it.d.video)} alt={it.d.name}
+                                    onFirstPlay={() => track("feed_video_played", { recipe: it.d.name })} />
+                                  <span aria-hidden="true" style={{ position: "absolute", top: 8, left: 8, padding: "3px 8px", borderRadius: 99, background: "rgba(0,0,0,0.55)", color: "white", fontSize: 11, fontWeight: 800 }}>▶ Video</span>
+                                </>
+                              ) : mealPhotos[it.d.name] && (
                                 <img src={sizedPhoto(mealPhotos[it.d.name], 500)} alt={it.d.name} loading="lazy"
                                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                               )}
@@ -1174,6 +1183,10 @@ export default function GoEatApp() {
                             <div style={{ padding: "6px 4px 0", fontWeight: 700, fontSize: 14, color: "#222", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.d.name}</div>
                             <div style={{ padding: "1px 4px 0", fontSize: 12, color: "#888" }}>~{it.d.minutes} min · {it.d.cuisine}</div>
                           </button>
+                          {it.d.video && (
+                            <a href={`https://www.pexels.com/@${it.d.video.by[1]}`} target="_blank" rel="noopener noreferrer"
+                              style={{ display: "block", padding: "1px 4px 0", fontSize: 10.5, color: "#AAA", textDecoration: "none" }}>Video: {it.d.video.by[0]} / Pexels</a>
+                          )}
                           <button onClick={() => quickAdd(it.d)}
                             aria-label={isPicked(it.d.name) ? `Remove ${it.d.name} from my week` : `Add ${it.d.name} to my week`} aria-pressed={isPicked(it.d.name)}
                             style={{ position: "absolute", top: it.h - 50, right: 8, minWidth: 42, height: 42, padding: "0 10px", borderRadius: 14, border: "none", background: isPicked(it.d.name) ? "#1A5C2E" : "#F97316", color: "white", fontSize: isPicked(it.d.name) ? 13 : 24, fontWeight: 900, cursor: "pointer", boxShadow: "0 3px 10px rgba(0,0,0,0.25)", fontFamily: "'Nunito', sans-serif" }}>
@@ -1774,13 +1787,13 @@ export default function GoEatApp() {
         </div>
       )}
       {/* This-week tray — browsing always leads to the plan */}
-      {screen !== "loading" && view === "home" && !sheet && (
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 68, zIndex: 140, padding: "0 12px" }}>
+      {screen !== "loading" && view === "home" && !sheet && (result || weekPicks.length > 0) && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 72, zIndex: 140, padding: "0 12px" }}>
           <button onClick={() => { track("week_tray_clicked", { picks: weekPicks.length, hasPlan: !!result }); setView("week"); }}
-            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 406, margin: "0 auto", minHeight: 56, padding: "6px 8px 6px 14px", borderRadius: 18, border: "none", background: "#1A5C2E", color: "white", cursor: "pointer", boxShadow: "0 8px 20px rgba(0,0,0,0.22)", fontFamily: "'Nunito', sans-serif", textAlign: "left" as const }}>
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 406, margin: "0 auto", minHeight: 46, padding: "5px 6px 5px 12px", borderRadius: 16, border: "none", background: "#1A5C2E", color: "white", cursor: "pointer", boxShadow: "0 8px 20px rgba(0,0,0,0.22)", fontFamily: "'Nunito', sans-serif", textAlign: "left" as const }}>
             <span style={{ display: "flex", flexShrink: 0 }}>
               {weekPicks.slice(0, 3).map((p, i) => (
-                <span key={p.name + p.day} style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden", border: "2px solid #1A5C2E", marginLeft: i ? -10 : 0, background: "#2E7D32" }}>
+                <span key={p.name + p.day} style={{ width: 28, height: 28, borderRadius: 8, overflow: "hidden", border: "2px solid #1A5C2E", marginLeft: i ? -10 : 0, background: "#2E7D32" }}>
                   {mealPhotos[p.name] && <img src={sizedPhoto(mealPhotos[p.name], 80)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
                 </span>
               ))}
@@ -1790,11 +1803,8 @@ export default function GoEatApp() {
               <span style={{ display: "block", fontWeight: 900, fontSize: 15 }}>
                 {result ? "Your meal plan is ready" : weekPicks.length > 0 ? `${weekPicks.length} dish${weekPicks.length > 1 ? "es" : ""} picked` : "This week's plan"}
               </span>
-              <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>
-                {result ? "Meals + grocery list" : weekPicks.length > 0 ? "We'll plan the rest" : "Tap ＋ on dishes you like"}
-              </span>
             </span>
-            <span style={{ flexShrink: 0, padding: "10px 14px", borderRadius: 12, background: "#F97316", fontWeight: 900, fontSize: 14 }}>
+            <span style={{ flexShrink: 0, padding: "8px 12px", borderRadius: 11, background: "#F97316", fontWeight: 900, fontSize: 14 }}>
               {result ? "View →" : "Build plan →"}
             </span>
           </button>
@@ -1805,7 +1815,7 @@ export default function GoEatApp() {
         <BottomNav
           view={view}
           onChange={v => { if (v === "saved") setSelectingSaved(false); if (v === "shop") setTab("shop"); else if (v === "week" && tab === "shop") setTab("plan"); setView(v); window.scrollTo(0, 0); }}
-          badges={{ week: result ? 0 : weekPicks.length, saved: savedRecipes.length, shop: shoppingStale ? 1 : 0 }}
+          badges={{ week: result ? 0 : weekPicks.length, saved: savedRecipes.length, shop: 0 }}
         />
       )}
     </div>
