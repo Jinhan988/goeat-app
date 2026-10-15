@@ -20,7 +20,7 @@ export type SheetDish = {
   cuisine?: string;
   minutes?: number;
   meal?: MealType;
-  source: "feed" | "plan" | "saved" | "search";
+  source: "feed" | "plan" | "saved" | "search" | "sample";
   slot?: { day: string; type: string }; // set when opened from the meal plan
 };
 

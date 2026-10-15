@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import { FEED, FEED_FILTERS, dishMatches, findFeedDish, feedPhotoUrl, feedPhotoCredit, feedVideoSrc, feedVideoPoster, type FeedDish, type MealType } from "./lib/feed";
 import FeedVideo from "./components/FeedVideo";
+import SampleWeek from "./components/SampleWeek";
+import { SAMPLE_WEEK } from "./lib/sample";
 import { DAYS, KEYS, readJSON, writeJSON, type SavedRecipe, type WeekPick, type ExtraItem } from "./lib/storage";
 import RecipeSheet, { type RecipeData, type SheetDish } from "./components/RecipeSheet";
 import BottomNav, { type View } from "./components/BottomNav";
@@ -90,6 +92,7 @@ export default function GoEatApp() {
   const [brokenPhotos, setBrokenPhotos] = useState<Record<string, boolean>>({});
   const [showTopBtn, setShowTopBtn] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
+  const [showSample, setShowSample] = useState(false);
   // Logo splash on entry (once per browser session). Home renders underneath,
   // so photos are already loading while the logo shows.
   const [splash, setSplash] = useState<"show" | "fading" | "done">("show");
@@ -543,6 +546,27 @@ export default function GoEatApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shoppingStale, shopUpdating, shopError, result]);
 
+  // ---------- Sample week (instant, no AI call) ----------
+  function openSample(from: string) {
+    setShowSample(true);
+    track("sample_week_opened", { from });
+  }
+  function sampleMakeMine() {
+    track("sample_make_mine_clicked");
+    setShowSample(false);
+    setView("week");
+    window.scrollTo(0, 0);
+  }
+  function sampleUse() {
+    const picks: WeekPick[] = SAMPLE_WEEK.flatMap(d => d.meals.map(m => ({ name: m.name, day: d.day, type: m.type })));
+    setWeekPicks(picks);
+    writeJSON(KEYS.weekPicks, picks);
+    track("sample_use_clicked", { picks: picks.length });
+    setShowSample(false);
+    setView("week");
+    window.scrollTo(0, 0);
+  }
+
   // ---------- Extra shopping items from recipes ----------
   function addIngredientsToList(name: string) {
     const data = recipeCache[name];
@@ -858,6 +882,19 @@ export default function GoEatApp() {
         </div>
       )}
 
+      {/* SAMPLE WEEK */}
+      {showSample && (
+        <SampleWeek
+          photo={n => (mealPhotos[n] ? sizedPhoto(mealPhotos[n], 600) : undefined)}
+          canUse={!result}
+          onMakeMine={sampleMakeMine}
+          onUse={sampleUse}
+          onOpenDish={n => { const f = findFeedDish(n); if (f) openFeedDish(f, "sample"); }}
+          onClose={() => { setShowSample(false); track("sample_week_closed"); }}
+          track={track}
+        />
+      )}
+
       {/* RECIPE DETAIL */}
       {sheet && (
         <RecipeSheet
@@ -1044,6 +1081,12 @@ export default function GoEatApp() {
           </div>
           <div style={{ padding: "0 14px 8px", fontSize: 13.5, color: "#555", fontWeight: 600 }}>
             Tap <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: "#F97316", color: "white", fontWeight: 900, fontSize: 13 }}>＋</span> on dishes you like. We&apos;ll plan the rest.
+          </div>
+          <div style={{ padding: "0 12px 10px" }}>
+            <button onClick={() => openSample("home")}
+              style={{ width: "100%", minHeight: 46, borderRadius: 14, border: "1.5px dashed #F5B98A", background: "#FFF8F2", color: "#B4400A", fontWeight: 800, fontSize: 14.5, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+              👀 See a sample week — no setup needed
+            </button>
           </div>
 
           {/* Category chips with photos */}
@@ -1313,6 +1356,8 @@ export default function GoEatApp() {
           {weekPicks.length === 0 && includeMeals.length === 0 ? (
             <div style={{ margin: "14px 22px 0", padding: 16, borderRadius: 18, background: "#F7FAF7", border: "1.5px dashed #C8E6C9" }}>
               <div style={{ fontSize: 14, color: "#555", lineHeight: 1.5 }}>No dishes picked yet. Tap <strong>＋ Add to My Week</strong> on any dish, or just build a plan below.</div>
+              <button onClick={() => openSample("week_empty")}
+                style={{ marginTop: 10, minHeight: 40, padding: "0 14px", borderRadius: 99, border: "1.5px dashed #F5B98A", background: "#FFF8F2", color: "#B4400A", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>👀 See a sample week</button>
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" as const }}>
                 <button onClick={() => setView("home")}
                   style={{ minHeight: 40, padding: "0 14px", borderRadius: 99, border: "1.5px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>Browse dishes</button>
