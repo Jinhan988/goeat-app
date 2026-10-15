@@ -517,6 +517,14 @@ export default function GoEatApp() {
 
   async function fetchMealPhoto(mealName: string, photoQuery?: string): Promise<string> {
     if (mealPhotos[mealName]) return mealPhotos[mealName];
+    // Same dish as one in the feed (any capitalization) → use its fixed photo, no API call.
+    const feedDish = findFeedDish(mealName);
+    if (feedDish) {
+      const url = feedPhotoUrl(feedDish);
+      setMealPhotos(p => ({ ...p, [mealName]: url }));
+      setMealCredits(p => ({ ...p, [mealName]: feedPhotoCredit(feedDish) }));
+      return url;
+    }
     try {
       // Prefer the short AI-written search phrase; fall back to the meal name
       const query = encodeURIComponent((photoQuery || mealName) + " food");

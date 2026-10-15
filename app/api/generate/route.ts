@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { FEED } from "../../lib/feed";
+
+// Dishes that have a fixed photo in the app. Using these names in a plan
+// means those meals always show a real photo.
+const PHOTO_DISHES = FEED.map(d => `${d.name} (${d.meal}${d.tags.includes("vegetarian") ? ", vegetarian" : ""})`).join("; ");
 
 // Give the AI up to 60s so long generations don't get cut off on Vercel.
 export const maxDuration = 60;
@@ -252,6 +257,7 @@ Rules:
 - All 7 days Mon-Sun, 3 meals each.
 - Keep it affordable for the budget: reuse ingredients across meals and plan leftovers.
 - Follow ${diet} diet.
+- These dishes have photos in the app: ${PHOTO_DISHES}. When one fits the diet, cuisine and budget, use it with its EXACT name. Aim for about half the week's meals from this list, without repeating a dish.
 - "tip": under 8 words. "calories": an estimate per serving.
 - "photoQuery": 2-4 plain English words naming what is visibly on the plate, most distinctive item first. No cuisine labels or adjectives.`;
 
