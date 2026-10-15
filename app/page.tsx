@@ -1305,9 +1305,31 @@ export default function GoEatApp() {
               style={{ width: "100%", minHeight: 56, borderRadius: 99, border: "none", background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 900, fontSize: 17, cursor: "pointer", boxShadow: "0 6px 16px rgba(232,98,10,0.3)", fontFamily: "'Nunito', sans-serif" }}>
               🍽️ {weekPicks.length + includeMeals.length > 0 ? "Build my week with these" : "Build my 7-day plan"}
             </button>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, padding: "10px 14px", borderRadius: 14, background: "#F7FAF7" }}>
+            {/* Quick picks: country + family size, no need to open Edit */}
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column" as const, gap: 8 }}>
+              <div role="group" aria-label="Country" style={{ display: "flex", gap: 6 }}>
+                {([["CA", "🇨🇦 Canada"], ["US", "🇺🇸 United States"]] as const).map(([code, label]) => (
+                  <button key={code} aria-pressed={country === code}
+                    onClick={() => { if (country !== code) { setCountry(code); setStore(code === "CA" ? CA_STORES[0] : US_STORES[0]); track("quick_setting_changed", { setting: "country", value: code }); } }}
+                    style={{ flex: 1, minHeight: 44, borderRadius: 12, border: `1.5px solid ${country === code ? "#1A5C2E" : "#E3E3E3"}`, background: country === code ? "#E8F5E9" : "white", color: country === code ? "#1A5C2E" : "#777", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div role="group" aria-label="Family size" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#1A5C2E", flexShrink: 0, marginRight: 2 }}>👨‍👩‍👧 People</span>
+                {[1, 2, 3, 4, 5, 6].map(n => (
+                  <button key={n} aria-pressed={family === n} aria-label={`${n}${n === 6 ? " or more" : ""} ${n === 1 ? "person" : "people"}`}
+                    onClick={() => { setFamily(n); track("quick_setting_changed", { setting: "family", value: n }); }}
+                    style={{ flex: 1, minWidth: 0, minHeight: 44, borderRadius: 12, border: `1.5px solid ${family === n ? "#1A5C2E" : "#E3E3E3"}`, background: family === n ? "#1A5C2E" : "white", color: family === n ? "white" : "#555", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                    {n}{n === 6 ? "+" : ""}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, padding: "10px 14px", borderRadius: 14, background: "#F7FAF7" }}>
               <span style={{ fontSize: 14, color: "#444", fontWeight: 700, minWidth: 0 }}>
-                👨‍👩‍👧 {family} {family === 1 ? "person" : "people"} · {sym}{budget || "150"} · {store}{diets.length ? ` · ${diets.join(", ")}` : ""}{cuisines.length ? ` · ${cuisines.join(", ")}` : ""}
+                💰 {sym}{budget || "150"}/week · {store}{diets.length ? ` · ${diets.join(", ")}` : ""}{cuisines.length ? ` · ${cuisines.join(", ")}` : ""}
               </span>
               <button onClick={() => setEditSettings(v => !v)} aria-expanded={editSettings}
                 style={{ flexShrink: 0, minHeight: 36, padding: "0 12px", borderRadius: 99, border: "1.5px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
