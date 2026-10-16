@@ -370,24 +370,24 @@ export default function GoEatApp() {
   }
 
   // ---------- Recipes (detail sheet) ----------
+  // Recipes: this device's cache first, then the CDN-cached /api/recipe
+  // (instant for any dish someone has opened before).
   async function loadRecipe(name: string) {
     if (recipeCache[name]) return;
+    const local = readJSON<Record<string, RecipeData>>(KEYS.recipes, {});
+    if (local[name]) { setRecipeCache(p => ({ ...p, [name]: local[name] })); return; }
     setRecipeStatus(p => ({ ...p, [name]: "loading" }));
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          family: family || 4, budget: budget || "150", store,
-          diet: diets.join(" + ") || "No Restriction",
-          cuisine: cuisines.join(" + ") || "Any Cuisine",
-          country, ingredients: [], recipeOnly: true, recipeName: name,
-        }),
-      });
+      const res = await fetch(`/api/recipe?name=${encodeURIComponent(name)}&v=1`);
       const data = res.ok ? await res.json() : null;
       if (!data?.recipe) throw new Error("no recipe");
       setRecipeCache(p => ({ ...p, [name]: data.recipe }));
       setRecipeStatus(p => { const n = { ...p }; delete n[name]; return n; });
+      const keep = readJSON<Record<string, RecipeData>>(KEYS.recipes, {});
+      const names = Object.keys(keep);
+      if (names.length >= 60) delete keep[names[0]]; // keep the device cache small
+      keep[name] = data.recipe;
+      writeJSON(KEYS.recipes, keep);
     } catch {
       // Show an error with "Try again" — never a made-up recipe.
       setRecipeStatus(p => ({ ...p, [name]: "failed" }));

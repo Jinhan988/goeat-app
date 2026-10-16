@@ -25,6 +25,7 @@ export const KEYS = {
   extraItems: "goeatai_extra_items",
   lastResult: "goeatai_last_result",
   settings: "goeatai_settings",
+  recipes: "goeatai_recipes",
 };
 
 export function readJSON<T>(key: string, fallback: T): T {
