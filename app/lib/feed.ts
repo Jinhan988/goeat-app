@@ -289,3 +289,40 @@ export function findFeedDish(name: string): FeedDish | undefined {
   const n = name.trim().toLowerCase();
   return FEED.find(d => d.name.toLowerCase() === n);
 }
+
+// Korean (and a few English) search words → English words used in dish
+// names, tags and meals, so "김치찌개" or "아침" still finds feed dishes.
+const SEARCH_ALIASES: Record<string, string[]> = {
+  "김치": ["kimchi"], "불고기": ["bulgogi"], "비빔밥": ["bibimbap"], "떡볶이": ["tteokbokki"], "라면": ["ramen", "ramyeon"], "라멘": ["ramen"],
+  "찌개": ["jjigae", "stew"], "전골": ["hot pot", "stew"], "국밥": ["soup"], "국": ["soup"], "탕": ["soup", "stew"], "수프": ["soup"], "스프": ["soup"],
+  "국수": ["noodle", "guksu"], "냉면": ["cold noodle"], "칼국수": ["kalguksu"], "잡채": ["japchae"], "만두": ["dumpling"], "김밥": ["kimbap", "sushi roll"],
+  "도시락": ["lunch box", "bento", "lunchbox"], "치킨": ["chicken"], "닭": ["chicken"], "소고기": ["beef"], "쇠고기": ["beef"], "돼지": ["pork"], "삼겹살": ["korean bbq", "pork"],
+  "갈비": ["korean bbq", "ribs"], "연어": ["salmon"], "새우": ["shrimp"], "생선": ["fish"], "두부": ["tofu"], "계란": ["egg"], "달걀": ["egg"],
+  "샐러드": ["salad"], "파스타": ["pasta", "spaghetti", "penne"], "피자": ["pizza"], "카레": ["curry"], "커리": ["curry"], "타코": ["taco"],
+  "햄버거": ["burger"], "버거": ["burger"], "샌드위치": ["sandwich"], "볶음밥": ["fried rice"], "덮밥": ["rice bowl", "don"], "죽": ["congee", "porridge"],
+  "우동": ["udon"], "소바": ["soba"], "돈가스": ["tonkatsu"], "돈까스": ["tonkatsu"], "초밥": ["sushi"], "회": ["sashimi"], "쌀국수": ["pho"],
+  "팟타이": ["pad thai"], "스테이크": ["steak"], "감자": ["potato"], "고구마": ["sweet potato"], "브라우니": ["brownie"], "케이크": ["cake"],
+  "빵": ["bread", "toast"], "팬케이크": ["pancake"], "와플": ["waffle"], "오믈렛": ["omelette"], "빙수": ["bingsu"], "디저트": ["snack"], "간식": ["snack"],
+  "아침": ["breakfast"], "점심": ["lunch"], "저녁": ["dinner"], "채식": ["vegetarian"], "에어프라이어": ["air fryer", "airfryer"],
+  "한식": ["korean"], "일식": ["japanese"], "중식": ["chinese"], "양식": ["american", "italian"], "멕시코": ["mexican"], "인도": ["indian"], "태국": ["thai"], "베트남": ["vietnamese"],
+  "dessert": ["snack"], "desserts": ["snack"], "snacks": ["snack"], "soups": ["soup"], "salads": ["salad"], "noodles": ["noodle"],
+};
+
+export function searchTerms(q: string): string[] {
+  const query = q.trim().toLowerCase();
+  if (!query) return [];
+  const terms = new Set<string>([query]);
+  // Each word on its own too ("kimchi stew" → kimchi, stew), skipping filler words.
+  const STOP = new Set(["and", "with", "the", "for", "recipe", "easy", "best", "of"]);
+  query.split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w)).forEach(w => terms.add(w.replace(/s$/, "")));
+  for (const [k, vs] of Object.entries(SEARCH_ALIASES)) {
+    if (query.includes(k)) vs.forEach(v => terms.add(v));
+  }
+  return [...terms];
+}
+
+// How many search terms a dish matches (0 = not a match). Used to rank results.
+export function dishSearchScore(d: FeedDish, terms: string[]): number {
+  const hay = `${d.name} ${d.cuisine} ${d.meal} ${d.tags.join(" ")} ${d.tags.includes("airFryer") ? "air fryer" : ""}`.toLowerCase();
+  return terms.filter(t => hay.includes(t)).length;
+}

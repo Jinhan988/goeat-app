@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { FEED, FEED_FILTERS, dishMatches, findFeedDish, feedPhotoUrl, feedPhotoCredit, feedVideoSrc, feedVideoPoster, type FeedDish, type MealType } from "./lib/feed";
+import { FEED, FEED_FILTERS, dishMatches, searchTerms, dishSearchScore, findFeedDish, feedPhotoUrl, feedPhotoCredit, feedVideoSrc, feedVideoPoster, type FeedDish, type MealType } from "./lib/feed";
 import FeedVideo from "./components/FeedVideo";
 import SampleWeek from "./components/SampleWeek";
 import { SAMPLE_WEEK } from "./lib/sample";
@@ -588,9 +588,13 @@ export default function GoEatApp() {
 
   // ---------- Feed ----------
   function feedList(): FeedDish[] {
-    const q = search.trim().toLowerCase();
+    const terms = searchTerms(search);
     let list = FEED.filter(d => dishMatches(d, feedFilter) && !brokenPhotos[d.name]);
-    if (q) list = list.filter(d => `${d.name} ${d.cuisine}`.toLowerCase().includes(q));
+    if (terms.length) {
+      // Search: best matches first (e.g. "kimchi stew" puts kimchi stews above other stews).
+      const scored = list.map(d => ({ d, s: dishSearchScore(d, terms) })).filter(x => x.s > 0);
+      return scored.sort((a, b) => b.s - a.s).map(x => x.d);
+    }
     if (feedFilter === "forYou") {
       // Rank by overlap with what the user saved and their chosen cuisines.
       const likedCuisines = new Set([...savedRecipes.map(r => r.cuisine).filter(Boolean), ...cuisines]);
@@ -1055,7 +1059,7 @@ export default function GoEatApp() {
             <img src="/logo.webp" alt="GoEat AI" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "contain", flexShrink: 0 }} />
             <div style={{ position: "relative", flex: 1 }}>
               <span aria-hidden="true" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15, color: "#888" }}>🔎</span>
-              <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search dishes or cuisines" aria-label="Search dishes"
+              <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search any dish — e.g. kimchi stew" aria-label="Search dishes"
                 style={{ width: "100%", boxSizing: "border-box", minHeight: 46, padding: "0 14px 0 40px", borderRadius: 99, border: "2px solid #E3E3E3", background: "white", fontSize: 16, outline: "none", fontFamily: "'Nunito Sans', sans-serif" }} />
             </div>
           </div>
@@ -1090,6 +1094,9 @@ export default function GoEatApp() {
               style={{ width: "100%", minHeight: 46, borderRadius: 14, border: "1.5px dashed #F5B98A", background: "#FFF8F2", color: "#B4400A", fontWeight: 800, fontSize: 14.5, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
               👀 See a sample week — no setup needed
             </button>
+            <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap" as const, gap: "4px 12px", marginTop: 8, fontSize: 12.5, color: "#4A6B50", fontWeight: 700 }}>
+              <span>✓ Free</span><span>✓ No sign-up</span><span>✓ Your plans stay on this device</span>
+            </div>
           </div>
 
           {/* Category chips with photos */}
@@ -1257,16 +1264,24 @@ export default function GoEatApp() {
 
           {/* Food feed — two-column masonry */}
           <div style={{ padding: "4px 8px 8px" }}>
+            {/* Any search can become a recipe, even when the feed has close matches */}
+            {search.trim() && (
+              <button onClick={() => { track("search_ai_recipe", { query: search.trim(), feedMatches: feedList().length }); openSheet({ name: search.trim(), source: "search" }); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 56, margin: "0 0 10px", padding: "8px 14px", borderRadius: 16, border: "1.5px solid #1A5C2E", background: "#F1F8F1", color: "#1A5C2E", cursor: "pointer", textAlign: "left" as const, fontFamily: "'Nunito', sans-serif" }}>
+                <span aria-hidden="true" style={{ fontSize: 22 }}>✨</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 900, fontSize: 15 }}>Get a recipe for &ldquo;{search.trim()}&rdquo;</span>
+                  <span style={{ display: "block", fontSize: 12.5, color: "#4A6B50", fontWeight: 600 }}>
+                    {feedList().length > 0 ? `Written by GoEat AI · or pick from ${feedList().length} dish${feedList().length > 1 ? "es" : ""} below` : "Not in our photo feed yet · written by GoEat AI"}
+                  </span>
+                </span>
+                <span aria-hidden="true" style={{ fontWeight: 900 }}>→</span>
+              </button>
+            )}
             {feedList().length === 0 ? (
-              <div style={{ padding: "24px 12px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 15, color: "#666", marginBottom: 12 }}>No dishes match{search.trim() ? ` "${search.trim()}"` : ""}.</div>
-                {search.trim() && (
-                  <button onClick={() => openSheet({ name: search.trim(), source: "search" })}
-                    style={{ minHeight: 44, padding: "0 18px", borderRadius: 99, border: "2px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                    Get a recipe for &ldquo;{search.trim()}&rdquo;
-                  </button>
-                )}
-              </div>
+              !search.trim() && (
+                <div style={{ padding: "24px 12px 8px", textAlign: "center", fontSize: 15, color: "#666" }}>No dishes in this category yet.</div>
+              )
             ) : (() => {
               const HEIGHTS = [240, 190, 280, 210, 255, 225, 300, 200];
               const items = feedList().map((d, i) => ({ kind: "dish" as const, d, h: HEIGHTS[i % HEIGHTS.length] }));

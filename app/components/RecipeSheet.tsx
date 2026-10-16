@@ -198,6 +198,10 @@ export default function RecipeSheet(p: Props) {
                 </div>
               )}
 
+              <div style={{ marginTop: 14, fontSize: 12.5, color: "#777", lineHeight: 1.5 }}>
+                ℹ️ This recipe was written by GoEat AI. Times and calories are estimates. Check ingredients for allergies, and cook meat, fish and eggs all the way through.
+              </div>
+
               <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(dish.name + " recipe")}`} target="_blank" rel="noopener noreferrer"
                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 16, minHeight: 44, borderRadius: 99, background: "#FF0000", color: "white", fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
                 ▶ Watch on YouTube
