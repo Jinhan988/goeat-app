@@ -56,6 +56,37 @@ async function callClaude(prompt: string, maxTokens: number) {
   return JSON.parse(text.slice(start, end + 1));
 }
 
+async function callClaudeText(prompt: string, maxTokens: number): Promise<string> {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || "";
+}
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  "Meat & Protein": "🥩", "Produce": "🥦", "Dairy & Eggs": "🧀", "Pantry": "🥫", "Grains": "🍞", "Condiments": "🧂", "Frozen": "🧊", "Bakery": "🥖", "Other": "🛒",
+};
+
+// Compact list format (much shorter than JSON, so it comes back faster):
+// "Category | Item | Qty | Price" per line.
+function parseShoppingLines(text: string): ShoppingCategory[] {
+  const cats = new Map<string, ShoppingCategory>();
+  for (const raw of text.split("\n")) {
+    const parts = raw.replace(/^[-*•\s]+/, "").split("|").map(x => x.trim());
+    if (parts.length < 4) continue;
+    const [catRaw, name, qty, priceRaw] = parts;
+    const price = Number(priceRaw.replace(/[^0-9.]/g, ""));
+    if (!name || !(price > 0) || /^item$/i.test(name)) continue;
+    const category = Object.keys(CATEGORY_EMOJI).find(c => c.toLowerCase() === catRaw.toLowerCase()) || "Other";
+    if (!cats.has(category)) cats.set(category, { category, emoji: CATEGORY_EMOJI[category], items: [] });
+    cats.get(category)!.items.push({ name, qty, price });
+  }
+  return Array.from(cats.values());
+}
+
 type ShoppingCategory = { category?: string; emoji?: string; items: { name?: string; qty?: string; price?: unknown }[] };
 
 // Sum the shopping list in code (not by the AI). Drops unpriced items and duplicates.
@@ -119,7 +150,7 @@ function pricingRules(country: string, store: string) {
 export async function POST(req: NextRequest) {
   try {
     const { family, budget, store, diet, cuisine, country, ingredients, recipeOnly, recipeName, familyProfiles,
-      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly, previousPlanMeals } = await req.json();
+      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly, previousPlanMeals, trimList } = await req.json();
 
     // ---------- Recipe only mode ----------
     if (recipeOnly && recipeName) {
@@ -175,6 +206,19 @@ Return ONLY valid JSON (no markdown):
       return NextResponse.json({ meal });
     }
 
+    // ---------- Trim an existing list to the budget (on request) ----------
+    if (Array.isArray(trimList) && trimList.length > 0) {
+      const shop: { shoppingList?: unknown } = { shoppingList: trimList };
+      let total = sumList(shop);
+      const budgetNum = Number(budget) || 0;
+      total = await trimToBudget(shop, total, budgetNum, sym, store);
+      return NextResponse.json({
+        shoppingList: shop.shoppingList,
+        totalCost: total,
+        savings: Math.max(0, Math.round((budgetNum - total) * 100) / 100),
+      });
+    }
+
     // ---------- Rebuild the shopping list from a final plan ----------
     if (Array.isArray(shoppingFromPlan) && shoppingFromPlan.length > 0) {
       const planText = shoppingFromPlan
@@ -183,6 +227,7 @@ Return ONLY valid JSON (no markdown):
       const haveNote = Array.isArray(ingredients) && ingredients.length > 0
         ? `The user already has: ${ingredients.join(", ")}. Do NOT put these in the list.`
         : "";
+      const budgetNum = Number(budget) || 0;
       const shopPrompt = `Build ONE consolidated grocery list for this exact 7-day meal plan.
 Family: ${family} people | Budget: ${sym}${budget} | Store: ${store}
 ${haveNote}
@@ -190,21 +235,25 @@ ${haveNote}
 Meal plan:
 ${planText}
 
-Return ONLY valid JSON (no markdown):
-{
-  ${SHOPPING_SHAPE}
-}
+Output ONLY lines in this exact format, one item per line, nothing else:
+Category | Item | Qty | Price
+Category must be one of: Meat & Protein, Produce, Dairy & Eggs, Pantry, Grains, Condiments, Frozen, Bakery.
+Price is a number in ${sym} with no currency sign (e.g. 6.49).
+Example:
+Meat & Protein | Chicken thighs | 2 kg | 13.99
+Produce | Broccoli | 2 heads | 4.49
+
 Rules:
-- Include every ingredient needed to cook the meals above, combined across meals (no duplicates).
-- The sum of all prices should be at or under ${sym}${budget}.
+- Include what's needed to cook the meals above, combined across meals (no duplicates). Pantry staples most kitchens have (salt, pepper, cooking oil) can be skipped.
+- Keep the total around 85-95% of ${sym}${budget}, and NEVER above ${sym}${budget}: add up the prices as you go and pick smaller packs or cheaper staples if needed.
 ${pricingRules(country, store)}`;
-      const shop = await callClaude(shopPrompt, 3500);
-      if (!Array.isArray(shop.shoppingList)) {
+      const shop: { shoppingList?: unknown } = { shoppingList: parseShoppingLines(await callClaudeText(shopPrompt, 1800)) };
+      if (!Array.isArray(shop.shoppingList) || shop.shoppingList.length === 0) {
         return NextResponse.json({ error: "No shopping list returned" }, { status: 502 });
       }
-      let total = sumList(shop);
-      total = await trimToBudget(shop, total, Number(budget) || 0, sym, store);
-      const budgetNum = Number(budget) || 0;
+      // One fast call only. If it's still over budget the app says so and
+      // offers "Trim to budget" instead of making everyone wait for a 2nd call.
+      const total = sumList(shop);
       return NextResponse.json({
         shoppingList: shop.shoppingList,
         totalCost: total,

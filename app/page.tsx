@@ -93,6 +93,8 @@ export default function GoEatApp() {
   const [showTopBtn, setShowTopBtn] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
   const [showSample, setShowSample] = useState(false);
+  const [trimming, setTrimming] = useState(false);
+  const [trimError, setTrimError] = useState("");
   // Logo splash on entry (once per browser session). Home renders underneath,
   // so photos are already loading while the logo shows.
   const [splash, setSplash] = useState<"show" | "fading" | "done">("show");
@@ -547,6 +549,34 @@ export default function GoEatApp() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shoppingStale, shopUpdating, shopError, result]);
+
+  // ---------- Over budget: trim on request ----------
+  const overBudget = result && typeof result.totalCost === "number" && Number(result.budget) > 0
+    ? Math.round((result.totalCost - Number(result.budget)) * 100) / 100 : 0;
+
+  async function trimShoppingList() {
+    if (!result?.shoppingList) return;
+    setTrimming(true);
+    setTrimError("");
+    track("trim_to_budget_clicked", { over: overBudget });
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ family: result.family, budget: result.budget, store: result.store, country: result.country, trimList: result.shoppingList }),
+      });
+      const data = res.ok ? await res.json() : null;
+      if (!data || !Array.isArray(data.shoppingList)) throw new Error("no list");
+      const cur = resultRef.current || result;
+      const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
+      setResult(next);
+      setChecked({});
+      persistResult(next, false);
+    } catch {
+      setTrimError("Couldn't trim the list. Please try again.");
+    }
+    setTrimming(false);
+  }
 
   // ---------- Sample week (instant, no AI call) ----------
   function openSample(from: string) {
@@ -1769,7 +1799,9 @@ export default function GoEatApp() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "12px 22px 16px" }}>
                 {[
                   { icon: "🛒", val: typeof result.totalCost === "number" ? `${result.sym}${result.totalCost.toFixed(2)}` : "…", lbl: "Est. Grocery Cost", note: `of ${result.sym}${result.budget} budget`, color: "#2E7D32" },
-                  { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
+                  overBudget > 0
+                    ? { icon: "⚠️", val: `+${result.sym}${overBudget.toFixed(2)}`, lbl: "Over budget", note: "Trim the list below", color: "#C62828" }
+                    : { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
                   { icon: "♻️", val: result.wasteReduction?.estimatedWasteReduced, lbl: "Waste Reduced", note: "AI estimate", color: "#457b9d" },
                   { icon: "🍱", val: result.wasteReduction?.mealsFromLeftovers, lbl: "Leftover Meals", note: "planned this week", color: "#e63946" },
                 ].filter(x => x.val !== undefined && x.val !== null && x.val !== "").map(({ icon, val, lbl, note, color }) => (
@@ -1781,6 +1813,16 @@ export default function GoEatApp() {
                   </div>
                 ))}
               </div>
+
+              {overBudget > 0 && !shoppingStale && (
+                <div style={{ margin: "0 22px 12px" }}>
+                  <button onClick={trimShoppingList} disabled={trimming}
+                    style={{ width: "100%", minHeight: 48, borderRadius: 99, border: "none", background: "#C62828", color: "white", fontWeight: 800, fontSize: 15, cursor: trimming ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                    {trimming ? "Trimming the list…" : `✂️ Trim list to ${result.sym}${result.budget}`}
+                  </button>
+                  {trimError && <div role="alert" style={{ marginTop: 6, fontSize: 13, color: "#B4400A" }}>{trimError}</div>}
+                </div>
+              )}
 
               {/* Disclaimer */}
               <div style={{ margin: "0 22px 16px", background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "8px 12px", fontSize: 14, color: "#856404" }}>
@@ -1866,7 +1908,7 @@ export default function GoEatApp() {
               <div style={{ background: "#FFF4F0", border: "1.5px solid #F97316", borderRadius: 22, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 24 }}>💰</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>Estimated savings: {typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…"}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>{overBudget > 0 ? `Over budget by ${result.sym}${overBudget.toFixed(2)}` : `Estimated savings: ${typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…"}`}</div>
                   <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>left in your {result.sym}{result.budget} weekly budget</div>
                 </div>
               </div>
