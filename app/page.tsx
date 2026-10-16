@@ -327,7 +327,8 @@ export default function GoEatApp() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true })
+        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true,
+          previousPlanMeals: (result?.mealPlan || readJSON<any>(KEYS.lastResult, null)?.mealPlan || []).flatMap((d: any) => (d.meals || []).map((m: any) => m.name)) })
       });
 
       steps.forEach(clearTimeout);

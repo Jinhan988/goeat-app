@@ -3,7 +3,15 @@ import { FEED } from "../../lib/feed";
 
 // Dishes that have a fixed photo in the app. Using these names in a plan
 // means those meals always show a real photo.
-const PHOTO_DISHES = FEED.filter(d => !d.noPlan).map(d => `${d.name} (${d.meal}${d.tags.includes("vegetarian") ? ", vegetarian" : ""})`).join("; ");
+const PLAN_DISHES = FEED.filter(d => !d.noPlan).map(d => `${d.name} (${d.meal}${d.tags.includes("vegetarian") ? ", vegetarian" : ""})`);
+
+// A different random handful each time, so plans don't keep landing on the
+// same photo dishes.
+function photoDishSample(n: number): string {
+  const a = [...PLAN_DISHES];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, n).join("; ");
+}
 
 // Give the AI up to 60s so long generations don't get cut off on Vercel.
 export const maxDuration = 60;
@@ -111,7 +119,7 @@ function pricingRules(country: string, store: string) {
 export async function POST(req: NextRequest) {
   try {
     const { family, budget, store, diet, cuisine, country, ingredients, recipeOnly, recipeName, familyProfiles,
-      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly } = await req.json();
+      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly, previousPlanMeals } = await req.json();
 
     // ---------- Recipe only mode ----------
     if (recipeOnly && recipeName) {
@@ -230,6 +238,10 @@ Build the other meals around them${mealsOnly ? "" : ", and include their ingredi
       ? `The user saved these dishes and wants them this week. Include each one once, with this exact name, in a sensible day and meal: ${includes.join(", ")}.`
       : "";
 
+    const previousMeals = Array.isArray(previousPlanMeals)
+      ? previousPlanMeals.filter((n: unknown) => typeof n === "string").slice(0, 21).join(", ")
+      : "";
+
     // Fast path: meals only. The app shows the plan right away and builds the
     // shopping list in the background with the shoppingFromPlan mode above.
     const mealsPrompt = `You are GoEat AI. Generate a 7-day meal plan.
@@ -257,7 +269,14 @@ Rules:
 - All 7 days Mon-Sun, 3 meals each.
 - Keep it affordable for the budget: reuse ingredients across meals and plan leftovers.
 - Follow ${diet} diet.
-- These dishes have photos in the app: ${PHOTO_DISHES}. When one fits the diet, cuisine and budget, use it with its EXACT name. Aim for about half the week's meals from this list, without repeating a dish.
+VARIETY (important):
+- 21 different dishes. Never repeat a dish, and don't serve near-duplicates (e.g. two different chicken stir-fries).
+- Unless the user picked a cuisine, mix at least 5 cuisines across the week (e.g. Korean, Mexican, Italian, Indian, Japanese, Mediterranean, Thai, American, Middle Eastern, Vietnamese...).
+- Within the diet, rotate proteins (chicken, beef, pork, fish/seafood, eggs, tofu/beans/lentils) and don't use the same main protein for two dinners in a row.
+- Vary cooking styles (stir-fry, soup/stew, roasted/baked, grilled, salad/bowl, pasta/noodles) and vary breakfasts too (not oats every day).
+- Leftover reuse is fine, but turn it into a different dish.
+${previousMeals ? `- Last time this user got: ${previousMeals}. Make this week feel different: don't reuse those dishes (dishes the user chose above are the exception).` : ""}
+- Some dishes have photos in the app: ${photoDishSample(40)}. You MAY use a few of these (exact name) when they fit, but variety comes first; any good home-cooked dish is welcome.
 - "tip": under 8 words. "calories": an estimate per serving.
 - "photoQuery": 2-4 plain English words naming what is visibly on the plate, most distinctive item first. No cuisine labels or adjectives.`;
 
