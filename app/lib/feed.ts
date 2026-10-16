@@ -1,3 +1,5 @@
+import { dishIndex } from "./dishIndex";
+
 // Curated dishes for the Home discovery feed.
 // `minutes` is an approximate typical cooking time (shown as "~25 min").
 // Nutrition and cost are NOT stored here — they come from the AI recipe and
@@ -343,7 +345,7 @@ let NAME_WORDS: string[] | null = null;
 function nameWords(): string[] {
   if (!NAME_WORDS) {
     const set = new Set<string>();
-    FEED.forEach(d => d.name.toLowerCase().split(/[^a-z]+/).forEach(w => { if (w.length >= 4) set.add(w); }));
+    [...FEED.map(d => d.name), ...dishIndex().map(d => d.name)].forEach(n => n.toLowerCase().split(/[^a-z]+/).forEach(w => { if (w.length >= 4) set.add(w); }));
     NAME_WORDS = Array.from(set);
   }
   return NAME_WORDS;

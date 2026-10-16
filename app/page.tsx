@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { FEED, FEED_FILTERS, dishMatches, searchTerms, dishSearchScore, findFeedDish, feedPhotoUrl, feedPhotoCredit, feedVideoSrc, feedVideoPoster, type FeedDish, type MealType } from "./lib/feed";
 import FeedVideo from "./components/FeedVideo";
 import SampleWeek from "./components/SampleWeek";
+import { dishIndex, type IndexDish } from "./lib/dishIndex";
 import { SAMPLE_WEEK } from "./lib/sample";
 import { DAYS, KEYS, readJSON, writeJSON, type SavedRecipe, type WeekPick, type ExtraItem } from "./lib/storage";
 import RecipeSheet, { type RecipeData, type SheetDish } from "./components/RecipeSheet";
@@ -463,7 +464,7 @@ export default function GoEatApp() {
   }
 
   // "＋" on a feed card: put the dish in the next open slot (dinners first), or take it out again.
-  function quickAdd(d: FeedDish) {
+  function quickAdd(d: { name: string; meal: MealType; noPlan?: boolean }) {
     if (d.noPlan) return;
     const existing = weekPicks.find(p => p.name === d.name);
     if (existing) { removePick(existing); track("quick_add_removed", { recipe: d.name }); return; }
@@ -638,6 +639,20 @@ export default function GoEatApp() {
       list = [...list].sort((a, b) => score(b) - score(a));
     }
     return list;
+  }
+
+  // Search beyond the photo feed: ~1,000 more dish names (no photos).
+  const [moreShown, setMoreShown] = useState(30);
+  useEffect(() => { setMoreShown(30); }, [search]);
+  function indexResults(): IndexDish[] {
+    const terms = searchTerms(search);
+    if (!terms.length) return [];
+    const scored = dishIndex()
+      .map(d => ({ d, s: terms.filter(t => `${d.name} ${d.cuisine} ${d.meal} ${d.tag}`.toLowerCase().includes(t)).length }))
+      .filter(x => x.s > 0);
+    const top = scored.reduce((m, x) => Math.max(m, x.s), 0);
+    const keep = search.trim().split(/\s+/).length > 1 && top >= 2 ? scored.filter(x => x.s >= 2) : scored;
+    return keep.sort((a, b) => b.s - a.s).map(x => x.d);
   }
 
   async function fetchMealPhoto(mealName: string, photoQuery?: string): Promise<string> {
@@ -1371,6 +1386,46 @@ export default function GoEatApp() {
                       ))}
                     </div>
                   ))}
+                </div>
+              );
+            })()}
+
+            {/* More dishes: everything else that matches, as a quick list */}
+            {search.trim() && (() => {
+              const more = indexResults();
+              if (more.length === 0) return null;
+              return (
+                <div style={{ marginTop: 16, padding: "0 4px" }}>
+                  <div style={{ fontWeight: 900, fontSize: 16, color: "#1A5C2E", fontFamily: "'Nunito', sans-serif", marginBottom: 6 }}>
+                    More dishes <span style={{ color: "#888", fontWeight: 700, fontSize: 13 }}>({more.length})</span>
+                  </div>
+                  <div style={{ borderRadius: 16, border: "1px solid #E8EFE8", overflow: "hidden", background: "white" }}>
+                    {more.slice(0, moreShown).map((d, i) => {
+                      const canPlan = d.tag !== "snack";
+                      return (
+                        <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px 8px 14px", borderTop: i ? "1px solid #F1F4F1" : "none" }}>
+                          <button onClick={() => { track("index_dish_opened", { recipe: d.name }); openSheet({ name: d.name, cuisine: d.cuisine, meal: d.meal, source: "search" }); }}
+                            style={{ flex: 1, minWidth: 0, minHeight: 44, border: "none", background: "none", padding: 0, textAlign: "left" as const, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                            <span style={{ display: "block", fontWeight: 800, fontSize: 15, color: "#222" }}>{d.name}</span>
+                            <span style={{ display: "block", fontSize: 12.5, color: "#888" }}>{d.cuisine} · {d.tag === "snack" ? "Snack & dessert" : d.meal}</span>
+                          </button>
+                          {canPlan && (
+                            <button onClick={() => quickAdd({ name: d.name, meal: d.meal })}
+                              aria-label={isPicked(d.name) ? `Remove ${d.name} from my week` : `Add ${d.name} to my week`} aria-pressed={isPicked(d.name)}
+                              style={{ flexShrink: 0, minWidth: 40, height: 40, padding: "0 10px", borderRadius: 12, border: "none", background: isPicked(d.name) ? "#1A5C2E" : "#FFF0E5", color: isPicked(d.name) ? "white" : "#E8620A", fontSize: isPicked(d.name) ? 12 : 20, fontWeight: 900, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                              {isPicked(d.name) ? `✓ ${weekPicks.find(p => p.name === d.name)?.day.slice(0, 3)}` : "＋"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {more.length > moreShown && (
+                    <button onClick={() => setMoreShown(n => n + 30)}
+                      style={{ width: "100%", minHeight: 44, marginTop: 8, borderRadius: 99, border: "1.5px solid #C8E6C9", background: "#F7FBF7", color: "#1A5C2E", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                      Show more ({more.length - moreShown})
+                    </button>
+                  )}
                 </div>
               );
             })()}
