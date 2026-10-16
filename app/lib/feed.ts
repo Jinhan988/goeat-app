@@ -300,11 +300,25 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   "갈비": ["korean bbq", "ribs"], "연어": ["salmon"], "새우": ["shrimp"], "생선": ["fish"], "두부": ["tofu"], "계란": ["egg"], "달걀": ["egg"],
   "샐러드": ["salad"], "파스타": ["pasta", "spaghetti", "penne"], "피자": ["pizza"], "카레": ["curry"], "커리": ["curry"], "타코": ["taco"],
   "햄버거": ["burger"], "버거": ["burger"], "샌드위치": ["sandwich"], "볶음밥": ["fried rice"], "덮밥": ["rice bowl", "don"], "죽": ["congee", "porridge"],
-  "우동": ["udon"], "소바": ["soba"], "돈가스": ["tonkatsu"], "돈까스": ["tonkatsu"], "초밥": ["sushi"], "회": ["sashimi"], "쌀국수": ["pho"],
+  "우동": ["udon"], "소바": ["soba"], "돈가스": ["tonkatsu"], "돈까스": ["tonkatsu"], "초밥": ["sushi", "sashimi"], "회": ["sashimi"], "쌀국수": ["pho"],
   "팟타이": ["pad thai"], "스테이크": ["steak"], "감자": ["potato"], "고구마": ["sweet potato"], "브라우니": ["brownie"], "케이크": ["cake"],
   "빵": ["bread", "toast"], "팬케이크": ["pancake"], "와플": ["waffle"], "오믈렛": ["omelette"], "빙수": ["bingsu"], "디저트": ["snack"], "간식": ["snack"],
   "아침": ["breakfast"], "점심": ["lunch"], "저녁": ["dinner"], "채식": ["vegetarian"], "에어프라이어": ["air fryer", "airfryer"],
-  "한식": ["korean"], "일식": ["japanese"], "중식": ["chinese"], "양식": ["american", "italian"], "멕시코": ["mexican"], "인도": ["indian"], "태국": ["thai"], "베트남": ["vietnamese"],
+  "한식": ["korean"], "한국": ["korean"], "일본": ["japanese"], "중국": ["chinese"], "이탈리아": ["italian"], "미국": ["american"], "캐나다": ["canadian"], "일식": ["japanese"], "중식": ["chinese"], "양식": ["american", "italian"], "멕시코": ["mexican"], "인도": ["indian"], "태국": ["thai"], "베트남": ["vietnamese"],
+  // Loanwords people type in Korean
+  "스시": ["sushi", "sashimi", "poke"], "사시미": ["sashimi"], "포케": ["poke"], "롤": ["roll"], "참치": ["tuna"],
+  "부리또": ["burrito"], "브리또": ["burrito"], "퀘사디아": ["quesadilla"], "나초": ["nacho"], "엔칠라다": ["enchilada"], "파히타": ["fajita"], "츄러스": ["churro"], "추로스": ["churro"], "과카몰리": ["guacamole"],
+  "누들": ["noodle"], "짬뽕": ["noodle", "soup"], "짜장": ["noodle"], "탕수육": ["sweet and sour"], "마파두부": ["mapo tofu"], "딤섬": ["dim sum", "dumpling"], "덤플링": ["dumpling"], "바오": ["bao"], "훠궈": ["hot pot"], "콘지": ["congee"],
+  "반미": ["banh mi"], "똠얌": ["tom yum"], "그린커리": ["green curry"], "사테": ["satay"], "월남쌈": ["spring roll"], "스프링롤": ["spring roll"],
+  "규동": ["gyudon", "beef rice bowl"], "오야코동": ["chicken and egg", "rice bowl"], "돈부리": ["rice bowl"], "카츠": ["katsu", "tonkatsu"], "가라아게": ["karaage"], "미소": ["miso"],
+  "오코노미야키": ["okonomiyaki"], "타코야키": ["takoyaki"], "벤또": ["bento"], "벤토": ["bento"], "야끼소바": ["yakisoba"], "야키소바": ["yakisoba"],
+  "라자냐": ["lasagna"], "리조또": ["risotto"], "뇨끼": ["gnocchi"], "까르보나라": ["carbonara"], "카르보나라": ["carbonara"], "볼로네제": ["bolognese"], "미트볼": ["meatball"], "티라미수": ["tiramisu"], "브루스케타": ["bruschetta"], "카프레제": ["caprese"], "페스토": ["pesto"], "미네스트로네": ["minestrone"],
+  "후무스": ["hummus"], "팔라펠": ["falafel"], "기로스": ["gyro"], "자이로": ["gyro"], "수블라키": ["souvlaki"], "케밥": ["kebab"], "샤와르마": ["shawarma"], "샥슈카": ["shakshuka"], "타불레": ["tabbouleh"], "파에야": ["paella"], "라따뚜이": ["ratatouille"], "감바스": ["gambas", "garlic shrimp"],
+  "버터치킨": ["butter chicken"], "탄두리": ["tandoori"], "비리야니": ["biryani"], "달": ["dal"], "파니르": ["paneer"], "사모사": ["samosa"], "도사": ["dosa"], "난": ["naan"], "티카": ["tikka"],
+  "립": ["ribs"], "바베큐": ["bbq"], "바비큐": ["bbq"], "미트로프": ["meatloaf"], "푸틴": ["poutine"], "피시앤칩스": ["fish and chips"], "랍스터": ["lobster"], "치킨윙": ["wings"], "윙": ["wings"], "텐더": ["tenders"], "감자튀김": ["fries"], "고구마튀김": ["sweet potato fries"], "칠리": ["chili"],
+  "토스트": ["toast"], "프렌치토스트": ["french toast"], "베이글": ["bagel"], "머핀": ["muffin"], "쿠키": ["cookie"], "치즈케이크": ["cheesecake"], "파이": ["pie"], "아이스크림": ["ice cream"], "스무디": ["smoothie"], "아사이": ["acai"], "그래놀라": ["granola"], "요거트": ["yogurt"], "요구르트": ["yogurt"], "오트밀": ["oat"], "크레페": ["crepe"], "시나몬롤": ["cinnamon roll"], "바나나빵": ["banana bread"], "팝콘": ["popcorn"],
+  "치즈": ["cheese"], "버섯": ["mushroom"], "호박": ["pumpkin", "squash"], "토마토": ["tomato"], "아보카도": ["avocado"], "브로콜리": ["broccoli"], "콩": ["bean", "chickpea", "lentil"], "병아리콩": ["chickpea"], "렌틸": ["lentil"], "양고기": ["lamb"], "칠면조": ["turkey"], "오리": ["duck"], "오징어": ["squid"], "조개": ["clam"], "굴": ["oyster"],
+  "볶음": ["stir-fry", "stir fry", "fried"], "구이": ["grilled", "roast"], "찜": ["steamed", "braised"], "튀김": ["fried", "crispy"], "면": ["noodle", "pasta"], "밥": ["rice"],
   "dessert": ["snack"], "desserts": ["snack"], "snacks": ["snack"], "soups": ["soup"], "salads": ["salad"], "noodles": ["noodle"],
 };
 
@@ -315,8 +329,12 @@ export function searchTerms(q: string): string[] {
   // Each word on its own too ("kimchi stew" → kimchi, stew), skipping filler words.
   const STOP = new Set(["and", "with", "the", "for", "recipe", "easy", "best", "of"]);
   query.split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w)).forEach(w => terms.add(w.replace(/s$/, "")));
+  const tokens = query.split(/\s+/);
   for (const [k, vs] of Object.entries(SEARCH_ALIASES)) {
-    if (query.includes(k)) vs.forEach(v => terms.add(v));
+    // One-letter words (밥, 국, 면, 회, 죽, 탕, 달, 난, 굴, 콩, 찜, 롤, 윙, 립) only count as a whole word,
+    // so "초밥" isn't read as "rice" and "한국" isn't read as "soup".
+    const hit = k.length === 1 ? tokens.includes(k) : query.includes(k);
+    if (hit) vs.forEach(v => terms.add(v));
   }
   return Array.from(terms);
 }
