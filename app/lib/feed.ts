@@ -318,7 +318,7 @@ export function searchTerms(q: string): string[] {
   for (const [k, vs] of Object.entries(SEARCH_ALIASES)) {
     if (query.includes(k)) vs.forEach(v => terms.add(v));
   }
-  return [...terms];
+  return Array.from(terms);
 }
 
 // How many search terms a dish matches (0 = not a match). Used to rank results.
