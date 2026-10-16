@@ -35,6 +35,7 @@ type Props = {
   ingredientsAdded: boolean;
   onRetry: () => void;
   onToggleSave: () => void;
+  canPlan?: boolean; // false for desserts/snacks/sides: no "Add to My Week"
   onAddToWeek: (day: string, type: MealType) => void;
   onAddIngredients: () => void;
   onClose: () => void;
@@ -108,7 +109,7 @@ export default function RecipeSheet(p: Props) {
               style={{ flex: "0 0 auto", minHeight: 48, padding: "0 16px", borderRadius: 99, border: `2px solid ${p.isSaved ? "#F97316" : "#E0E0E0"}`, background: p.isSaved ? "#FFF4EC" : "white", color: p.isSaved ? "#E8620A" : "#333", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: font }}>
               {p.isSaved ? "♥ Saved" : "♡ Save"}
             </button>
-            {!dish.slot && (
+            {!dish.slot && p.canPlan !== false && (
               <button onClick={() => { setPicking(v => !v); setAdded(null); }}
                 style={{ flex: 1, minHeight: 48, borderRadius: 99, border: "none", background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: font }}>
                 ＋ Add to My Week

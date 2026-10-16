@@ -3,7 +3,7 @@ import { FEED } from "../../lib/feed";
 
 // Dishes that have a fixed photo in the app. Using these names in a plan
 // means those meals always show a real photo.
-const PHOTO_DISHES = FEED.map(d => `${d.name} (${d.meal}${d.tags.includes("vegetarian") ? ", vegetarian" : ""})`).join("; ");
+const PHOTO_DISHES = FEED.filter(d => !d.noPlan).map(d => `${d.name} (${d.meal}${d.tags.includes("vegetarian") ? ", vegetarian" : ""})`).join("; ");
 
 // Give the AI up to 60s so long generations don't get cut off on Vercel.
 export const maxDuration = 60;

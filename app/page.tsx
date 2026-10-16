@@ -461,6 +461,7 @@ export default function GoEatApp() {
 
   // "＋" on a feed card: put the dish in the next open slot (dinners first), or take it out again.
   function quickAdd(d: FeedDish) {
+    if (d.noPlan) return;
     const existing = weekPicks.find(p => p.name === d.name);
     if (existing) { removePick(existing); track("quick_add_removed", { recipe: d.name }); return; }
     const order: MealType[] = d.meal === "Breakfast" ? ["Breakfast", "Lunch", "Dinner"] : d.meal === "Lunch" ? ["Lunch", "Dinner", "Breakfast"] : ["Dinner", "Lunch", "Breakfast"];
@@ -908,6 +909,7 @@ export default function GoEatApp() {
           ingredientsAdded={extraItems.some(x => x.recipe === sheet.name)}
           onRetry={() => retryRecipe(sheet.name)}
           onToggleSave={() => toggleSave(sheet)}
+          canPlan={!findFeedDish(sheet.name)?.noPlan}
           onAddToWeek={(day, type) => addToWeek(sheet.name, day, type, sheet.source)}
           onAddIngredients={() => addIngredientsToList(sheet.name)}
           onClose={() => setSheet(null)}
@@ -1302,11 +1304,19 @@ export default function GoEatApp() {
                             <a href={`https://www.pexels.com/@${it.d.video.by[1]}`} target="_blank" rel="noopener noreferrer"
                               style={{ display: "block", padding: "1px 4px 0", fontSize: 10.5, color: "#AAA", textDecoration: "none" }}>Video: {it.d.video.by[0]} / Pexels</a>
                           )}
+                          {it.d.noPlan ? (
+                          <button onClick={() => toggleSave({ name: it.d.name, cuisine: it.d.cuisine, minutes: it.d.minutes, meal: it.d.meal, source: "feed" })}
+                            aria-label={isSaved(it.d.name) ? `Unsave ${it.d.name}` : `Save ${it.d.name}`} aria-pressed={isSaved(it.d.name)}
+                            style={{ position: "absolute", top: it.h - 50, right: 8, width: 42, height: 42, borderRadius: 14, border: "none", background: isSaved(it.d.name) ? "#E8620A" : "rgba(255,255,255,0.95)", color: isSaved(it.d.name) ? "white" : "#E8620A", fontSize: 20, cursor: "pointer", boxShadow: "0 3px 10px rgba(0,0,0,0.25)" }}>
+                            {isSaved(it.d.name) ? "♥" : "♡"}
+                          </button>
+                          ) : (
                           <button onClick={() => quickAdd(it.d)}
                             aria-label={isPicked(it.d.name) ? `Remove ${it.d.name} from my week` : `Add ${it.d.name} to my week`} aria-pressed={isPicked(it.d.name)}
                             style={{ position: "absolute", top: it.h - 50, right: 8, minWidth: 42, height: 42, padding: "0 10px", borderRadius: 14, border: "none", background: isPicked(it.d.name) ? "#1A5C2E" : "#F97316", color: "white", fontSize: isPicked(it.d.name) ? 13 : 24, fontWeight: 900, cursor: "pointer", boxShadow: "0 3px 10px rgba(0,0,0,0.25)", fontFamily: "'Nunito', sans-serif" }}>
                             {isPicked(it.d.name) ? `✓ ${weekPicks.find(p => p.name === it.d.name)?.day.slice(0, 3)}` : "＋"}
                           </button>
+                          )}
                         </div>
                       ))}
                     </div>
