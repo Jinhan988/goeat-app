@@ -26,16 +26,26 @@ STEPS:
 2. Short clear step.
 TIP: One tip that makes it better.
 
-Rules: 6-12 ingredients, 5-8 short steps. CALORIES is a rough per-serving estimate. If the dish name is not in English, write the recipe in that language.`;
+Rules: 6-12 ingredients, 5-8 short steps. CALORIES is a rough per-serving estimate.
+LANGUAGE: Write EVERYTHING in English (ingredients, steps, tip), even when the dish comes from another country or its name is in another language. Use ingredient names a North American shopper would find at the store (e.g. "boneless chicken thighs", "soy sauce", "mirin"). If the name was typed in another language, figure out the dish and still answer in English.`;
 
+  // Non-Latin scripts (Japanese, Chinese, Korean…) mean the model ignored the
+  // English rule; such a recipe is never returned or cached.
+  const NON_LATIN = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff]/;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 900, messages: [{ role: "user", content: prompt }] }),
-    });
-    const data = await response.json();
-    const recipe = parseRecipe(data.content?.[0]?.text || "");
+    let recipe = parseRecipe("");
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: MODEL, max_tokens: 900, messages: [{ role: "user", content: attempt ? prompt + "\n\nIMPORTANT: your answer must be 100% English." : prompt }] }),
+      });
+      const data = await response.json();
+      recipe = parseRecipe(data.content?.[0]?.text || "");
+      const text = [...recipe.ingredients.map(i => i.name), ...recipe.steps].join(" ");
+      if (!NON_LATIN.test(text)) break;
+      recipe = parseRecipe("");
+    }
     if (recipe.ingredients.length === 0 || recipe.steps.length === 0) {
       return NextResponse.json({ error: "No recipe returned" }, { status: 502, headers: { "Cache-Control": "no-store" } });
     }
