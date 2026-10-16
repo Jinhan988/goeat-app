@@ -622,7 +622,11 @@ export default function GoEatApp() {
     let list = FEED.filter(d => dishMatches(d, feedFilter) && !brokenPhotos[d.name]);
     if (terms.length) {
       // Search: best matches first (e.g. "kimchi stew" puts kimchi stews above other stews).
-      const scored = list.map(d => ({ d, s: dishSearchScore(d, terms) })).filter(x => x.s > 0);
+      let scored = list.map(d => ({ d, s: dishSearchScore(d, terms) })).filter(x => x.s > 0);
+      // Several words ("quick dinner", "healthy lunch"): when some dishes match
+      // more than one of them, show only those instead of everything that matches either.
+      const top = scored.reduce((m, x) => Math.max(m, x.s), 0);
+      if (search.trim().split(/\s+/).length > 1 && top >= 2) scored = scored.filter(x => x.s >= 2);
       return scored.sort((a, b) => b.s - a.s).map(x => x.d);
     }
     if (feedFilter === "forYou") {

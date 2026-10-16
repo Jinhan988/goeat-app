@@ -322,25 +322,81 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   "dessert": ["snack"], "desserts": ["snack"], "snacks": ["snack"], "soups": ["soup"], "salads": ["salad"], "noodles": ["noodle"],
 };
 
+// English synonyms, UK/Canadian words and search intents (the app is for
+// US & Canada, so this is the main path; matched as whole words/phrases).
+const EN_ALIASES: Record<string, string[]> = {
+  prawn: ["shrimp"], prawns: ["shrimp"], aubergine: ["eggplant"], courgette: ["zucchini"], chips: ["fries"], coriander: ["cilantro"],
+  pasta: ["pasta", "spaghetti", "penne", "lasagna", "carbonara", "linguine", "primavera"], spaghetti: ["spaghetti", "pasta"], noodle: ["noodle", "ramen", "udon", "soba", "pho", "lo mein", "pad thai", "yakisoba"],
+  bbq: ["bbq", "korean bbq", "ribs"], barbecue: ["bbq", "ribs"], hamburger: ["burger"], cheeseburger: ["burger"], wing: ["wings"], tender: ["tenders"], nugget: ["tenders"],
+  mac: ["mac and cheese"], "mac n cheese": ["mac and cheese"], "mac & cheese": ["mac and cheese"], stew: ["stew", "jjigae", "chili", "curry"], chowder: ["soup"],
+  veggie: ["vegetarian"], vegan: ["vegetarian"], meatless: ["vegetarian"], "plant based": ["vegetarian"], "plant-based": ["vegetarian"],
+  protein: ["highprotein"], keto: ["highprotein"], "low carb": ["highprotein"], gym: ["highprotein"],
+  cheap: ["budget"], affordable: ["budget"], frugal: ["budget"], healthy: ["salad", "vegetarian"], light: ["salad", "soup"],
+  brunch: ["breakfast"], "meal prep": ["lunchbox"], "packed lunch": ["lunchbox"], "school lunch": ["lunchbox"], "lunch box": ["lunchbox"], bento: ["lunchbox", "bento"],
+  dessert: ["snack"], desserts: ["snack"], sweet: ["snack"], treat: ["snack"], baking: ["snack"], side: ["snack"], sides: ["snack"], appetizer: ["snack"],
+  "air fryer": ["airfryer"], airfryer: ["airfryer"], "air-fryer": ["airfryer"],
+  quick: ["@quick"], fast: ["@quick"], easy: ["@quick"], weeknight: ["@quick"], "15 min": ["@quick"], "20 min": ["@quick"],
+};
+
+// Words that appear in dish names, for typo tolerance ("chiken" → chicken).
+let NAME_WORDS: string[] | null = null;
+function nameWords(): string[] {
+  if (!NAME_WORDS) {
+    const set = new Set<string>();
+    FEED.forEach(d => d.name.toLowerCase().split(/[^a-z]+/).forEach(w => { if (w.length >= 4) set.add(w); }));
+    NAME_WORDS = Array.from(set);
+  }
+  return NAME_WORDS;
+}
+function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      rowMin = Math.min(rowMin, cur[j]);
+    }
+    if (rowMin > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
 export function searchTerms(q: string): string[] {
   const query = q.trim().toLowerCase();
   if (!query) return [];
   const terms = new Set<string>([query]);
-  // Each word on its own too ("kimchi stew" → kimchi, stew), skipping filler words.
-  const STOP = new Set(["and", "with", "the", "for", "recipe", "easy", "best", "of"]);
-  query.split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w)).forEach(w => terms.add(w.replace(/s$/, "")));
   const tokens = query.split(/\s+/);
+  // Each word on its own too ("kimchi stew" → kimchi, stew), skipping filler words.
+  const STOP = new Set(["and", "with", "the", "for", "recipe", "recipes", "best", "of", "dish", "food", "meal", "meals", "how", "to", "make"]);
+  const words = tokens.filter(w => w.length >= 3 && !STOP.has(w)).map(w => w.replace(/(es|s)$/, m => (w.length > 4 ? "" : m)));
+  words.forEach(w => terms.add(w));
+  // English synonyms & intents (whole words or phrases).
+  for (const [k, vs] of Object.entries(EN_ALIASES)) {
+    const hit = k.includes(" ") || k.includes("-") ? query.includes(k) : tokens.includes(k) || words.includes(k);
+    if (hit) vs.forEach(v => terms.add(v));
+  }
+  // Korean words (kept for anyone who types them).
   for (const [k, vs] of Object.entries(SEARCH_ALIASES)) {
-    // One-letter words (밥, 국, 면, 회, 죽, 탕, 달, 난, 굴, 콩, 찜, 롤, 윙, 립) only count as a whole word,
-    // so "초밥" isn't read as "rice" and "한국" isn't read as "soup".
+    // One-letter words (밥, 국, 면 …) only count as a whole word, so "초밥" isn't read as "rice".
     const hit = k.length === 1 ? tokens.includes(k) : query.includes(k);
     if (hit) vs.forEach(v => terms.add(v));
   }
+  // Typos: a word that isn't in any dish name → the closest dish-name word.
+  const vocab = nameWords();
+  words.filter(w => /^[a-z]{4,}$/.test(w) && !vocab.some(v => v.includes(w))).forEach(w => {
+    const max = w.length >= 7 ? 2 : 1;
+    let best = "", bestD = max + 1;
+    for (const v of vocab) { const dd = editDistance(w, v, max); if (dd < bestD) { bestD = dd; best = v; } }
+    if (best) terms.add(best);
+  });
   return Array.from(terms);
 }
 
 // How many search terms a dish matches (0 = not a match). Used to rank results.
 export function dishSearchScore(d: FeedDish, terms: string[]): number {
   const hay = `${d.name} ${d.cuisine} ${d.meal} ${d.tags.join(" ")} ${d.tags.includes("airFryer") ? "air fryer" : ""}`.toLowerCase();
-  return terms.filter(t => hay.includes(t)).length;
+  return terms.filter(t => (t === "@quick" ? d.minutes <= QUICK_MINUTES : hay.includes(t))).length;
 }
