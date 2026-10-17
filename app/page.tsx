@@ -51,7 +51,6 @@ export default function GoEatApp() {
   const [store, setStore] = useState("Costco");
   const [diets, setDiets] = useState<string[]>([]);
   const [cuisines, setCuisines] = useState<string[]>([]);
-  const [prefTab, setPrefTab] = useState("diet");
   const [showManual, setShowManual] = useState(false);
   const [scanMode, setScanMode] = useState<"fridge"|"receipt"|null>(null);
   const [scanImage, setScanImage] = useState<string|null>(null);
@@ -802,19 +801,9 @@ export default function GoEatApp() {
                   <span style={{ fontSize: 14, color: "#999", fontWeight: 500, marginLeft: 6 }}>Select multiple</span>
                 </div>
 
-                {/* Tab switcher */}
-                <div style={{ display: "flex", gap: 0, border: "1.5px solid #E8F5E9", borderRadius: 14, overflow: "hidden", marginBottom: 10 }}>
-                  {[["diet","🥗 Diet Goal"],["cuisine","🍜 Cuisine Style"]].map(([t,l]) => (
-                    <button key={t} onClick={() => setPrefTab(t)}
-                      style={{ flex: 1, padding: "9px 6px", border: "none", background: prefTab === t ? "#1A5C2E" : "white", color: prefTab === t ? "white" : "#999", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                      {l} {prefTab === t && t === "diet" && diets.length > 0 ? `(${diets.length})` : ""}
-                      {prefTab === t && t === "cuisine" && cuisines.length > 0 ? `(${cuisines.length})` : ""}
-                    </button>
-                  ))}
-                </div>
-
                 {/* Diet grid */}
-                {prefTab === "diet" && (
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#555", margin: "2px 0 8px" }}>🥗 Diet goal</div>
+                {(
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     {DIETS.map(item => {
                       const isOn = diets.includes(item.id);
@@ -831,7 +820,8 @@ export default function GoEatApp() {
                 )}
 
                 {/* Cuisine grid */}
-                {prefTab === "cuisine" && (
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#555", margin: "14px 0 8px" }}>🍜 Cuisine style</div>
+                {(
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     {CUISINES.map(item => {
                       const isOn = cuisines.includes(item.id);
