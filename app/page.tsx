@@ -4,6 +4,9 @@ import { FEED, FEED_FILTERS, dishMatches, searchTerms, dishSearchScore, findFeed
 import FeedVideo from "./components/FeedVideo";
 import SampleWeek from "./components/SampleWeek";
 import { dishIndex, type IndexDish } from "./lib/dishIndex";
+
+// Dishes with especially appetizing photos; two of them open the feed each visit.
+const FEED_HEROES = ["Bulgogi Rice Bowl", "Garlic Butter Salmon with Asparagus", "Margherita Pizza", "Butter Chicken", "Pad Thai", "Classic Cheeseburger", "Spaghetti Bolognese", "Korean Fried Chicken", "Shrimp Tacos", "Teriyaki Chicken Rice Bowl", "Chicken Katsu Curry", "Greek Salad with Grilled Chicken"];
 import { SAMPLE_WEEK } from "./lib/sample";
 import { DAYS, KEYS, readJSON, writeJSON, type SavedRecipe, type WeekPick, type ExtraItem } from "./lib/storage";
 import RecipeSheet, { type RecipeData, type SheetDish } from "./components/RecipeSheet";
@@ -92,6 +95,8 @@ export default function GoEatApp() {
   // Feed dishes whose photo failed to load are hidden rather than shown blank.
   const [brokenPhotos, setBrokenPhotos] = useState<Record<string, boolean>>({});
   const [showTopBtn, setShowTopBtn] = useState(false);
+  // Feed order for this visit: reshuffled each visit, unseen dishes first.
+  const [feedOrder, setFeedOrder] = useState<Record<string, number> | null>(null);
   const [settingsReady, setSettingsReady] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [trimming, setTrimming] = useState(false);
@@ -176,6 +181,34 @@ export default function GoEatApp() {
     if (!settingsReady) return;
     writeJSON(KEYS.settings, { country, family, budget, store, diets, cuisines });
   }, [settingsReady, country, family, budget, store, diets, cuisines]);
+
+  // A fresh feed every visit (kept the same on reloads within the visit)
+  useEffect(() => {
+    try {
+      let order: string[] | null = null;
+      try { order = JSON.parse(sessionStorage.getItem("goeatai_feed_order") || "null"); } catch {}
+      if (!Array.isArray(order) || order.length === 0) {
+        let seed = Math.floor(Math.random() * 2147483647) || 1;
+        const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+        const names = FEED.map(d => d.name);
+        for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
+        const seen = new Set(readJSON<string[]>("goeatai_feed_seen", []));
+        const lastFirst = new Set(readJSON<string[]>("goeatai_feed_first", []));
+        order = [...names.filter(n => !seen.has(n)), ...names.filter(n => seen.has(n))];
+        // Lead with two dishes that have great photos, different from last visit's.
+        const heroes = FEED_HEROES.filter(n => !lastFirst.has(n) && order!.includes(n));
+        for (let i = heroes.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [heroes[i], heroes[j]] = [heroes[j], heroes[i]]; }
+        const lead = heroes.slice(0, 2);
+        order = [...lead, ...order.filter(n => !lead.includes(n))];
+        sessionStorage.setItem("goeatai_feed_order", JSON.stringify(order));
+        writeJSON("goeatai_feed_seen", order.slice(0, 24));
+        writeJSON("goeatai_feed_first", lead);
+      }
+      const rank: Record<string, number> = {};
+      order.forEach((n, i) => { rank[n] = i; });
+      setFeedOrder(rank);
+    } catch {}
+  }, []);
 
   // Floating "back to top" once the user has scrolled far down the feed
   useEffect(() => {
@@ -631,6 +664,7 @@ export default function GoEatApp() {
       if (search.trim().split(/\s+/).length > 1 && top >= 2) scored = scored.filter(x => x.s >= 2);
       return scored.sort((a, b) => b.s - a.s).map(x => x.d);
     }
+    if (feedOrder) list = [...list].sort((a, b) => (feedOrder[a.name] ?? 9999) - (feedOrder[b.name] ?? 9999));
     if (feedFilter === "forYou") {
       // Rank by overlap with what the user saved and their chosen cuisines.
       const likedCuisines = new Set([...savedRecipes.map(r => r.cuisine).filter(Boolean), ...cuisines]);
