@@ -743,6 +743,123 @@ export default function GoEatApp() {
 
   // Plan settings (country, family, budget, store, diet, cuisine, family profiles).
   // Shown on Home after a scan and in the My Week builder.
+  // Diet & Cuisine — multi select
+  const dietCuisineBlock = (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>
+                  🥗 Diet & Cuisine
+                  <span style={{ fontSize: 14, color: "#999", fontWeight: 500, marginLeft: 6 }}>Select multiple</span>
+                </div>
+
+                {/* Diet grid */}
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#555", margin: "2px 0 8px" }}>🥗 Diet goal</div>
+                {(
+                  <div role="group" aria-label="Diet goal" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    {DIETS.map(item => {
+                      const isOn = diets.includes(item.id);
+                      return (
+                        <button key={item.id} aria-pressed={isOn} onClick={() => setDiets(prev => isOn ? prev.filter(d => d !== item.id) : [...prev, item.id])}
+                          style={{ padding: "11px 6px", border: `1.5px solid ${isOn ? "#F97316" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#FFF4F0" : "white", cursor: "pointer", textAlign: "center" as const, position: "relative" as const, fontFamily: "'Nunito', sans-serif" }}>
+                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 14, color: "#F97316", fontWeight: 900 }}>✓</div>}
+                          <div style={{ fontSize: 20, marginBottom: 3 }}>{item.icon}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#F97316" : "#999" }}>{item.id}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Cuisine grid */}
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#555", margin: "14px 0 8px" }}>🍜 Cuisine style</div>
+                {(
+                  <div role="group" aria-label="Cuisine style" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    {CUISINES.map(item => {
+                      const isOn = cuisines.includes(item.id);
+                      return (
+                        <button key={item.id} aria-pressed={isOn} onClick={() => setCuisines(prev => isOn ? prev.filter(c => c !== item.id) : [...prev, item.id])}
+                          style={{ padding: "11px 6px", border: `1.5px solid ${isOn ? "#2E7D32" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#E8F5E9" : "white", cursor: "pointer", textAlign: "center" as const, position: "relative" as const, fontFamily: "'Nunito', sans-serif" }}>
+                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 14, color: "#2E7D32", fontWeight: 900 }}>✓</div>}
+                          <div style={{ fontSize: 20, marginBottom: 3 }}>{item.icon}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#2E7D32" : "#999" }}>{item.id}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Selected tags summary */}
+                {(diets.length > 0 || cuisines.length > 0) && (
+                  <div style={{ marginTop: 12, padding: "10px 12px", background: "#F1F8E9", borderRadius: 14, border: "1px solid #C8E6C9" }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#2E7D32", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Your selections:</div>
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+                      {diets.map(d => {
+                        const item = DIETS.find(x => x.id === d);
+                        return (
+                          <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF4F0", border: "1px solid #F97316", color: "#F97316", fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
+                            {item?.icon} {d}
+                            <span style={{ cursor: "pointer", marginLeft: 2 }} onClick={() => setDiets(prev => prev.filter(x => x !== d))}>×</span>
+                          </div>
+                        );
+                      })}
+                      {cuisines.map(c => {
+                        const item = CUISINES.find(x => x.id === c);
+                        return (
+                          <div key={c} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", border: "1px solid #2E7D32", color: "#1A5C2E", fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
+                            {item?.icon} {c}
+                            <span style={{ cursor: "pointer", marginLeft: 2 }} onClick={() => setCuisines(prev => prev.filter(x => x !== c))}>×</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+  );
+
+  // Family profiles (allergies, food needs)
+  const familyBlock = (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span>👨‍👩‍👧‍👦 Family Profiles</span>
+                  <span style={{ fontSize: 14, color: "#999", fontWeight: 500 }}>optional</span>
+                </div>
+
+                {familyProfiles.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, marginBottom: 10 }}>
+                    {familyProfiles.map((member, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F1F8E9", border: "1.5px solid #e5f0e5", borderRadius: 24 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 22 }}>{member.emoji}</span>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "#1A5C2E" }}>{member.name}</div>
+                            <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>
+                              {[...member.diets, ...member.allergies].filter(Boolean).join(" · ") || "No restrictions"}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => setEditingMember({...member, index: i})} style={{ background: "#E8F5E9", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 14, cursor: "pointer", color: "#1A5C2E" }}>Edit</button>
+                          <button onClick={() => { const u = familyProfiles.filter((_,j)=>j!==i); setFamilyProfiles(u); try{localStorage.setItem("goeatai_family_profiles",JSON.stringify(u));}catch{} }}
+                            style={{ background: "#FFF0F0", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 14, cursor: "pointer", color: "#e63946" }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button onClick={() => setEditingMember({ name: "", emoji: "👤", diets: [], allergies: [], index: -1 })}
+                  style={{ width: "100%", padding: "11px 14px", border: "1.5px dashed #e5e0d8", borderRadius: 24, background: "white", fontSize: 14, fontWeight: 700, color: "#2E7D32", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                  + Add Family Member
+                </button>
+
+                {familyProfiles.length > 0 && (
+                  <div style={{ marginTop: 8, padding: "8px 12px", background: "#E8F5E9", borderRadius: 8, fontSize: 14, color: "#1A5C2E", fontWeight: 600 }}>
+                    ✅ GoEat AI will consider all {familyProfiles.length} member{familyProfiles.length > 1 ? "s" : ""}&apos; restrictions
+                  </div>
+                )}
+              </div>
+  );
+
   const settingsPanel = (
             <div ref={manualRef} style={{ padding: "20px 22px 0", display: "flex", flexDirection: "column" as const, gap: 20 }}>
               {error && <div style={{ background: "#FFF0F0", border: "1.5px solid #FFCDD2", borderRadius: 24, padding: "12px 14px", fontSize: 14, color: "#e63946", fontWeight: 600 }}>⚠️ {error}</div>}
@@ -794,118 +911,9 @@ export default function GoEatApp() {
                 </select>
               </div>
 
-              {/* Diet & Cuisine — Multi Select */}
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8 }}>
-                  🥗 Diet & Cuisine
-                  <span style={{ fontSize: 14, color: "#999", fontWeight: 500, marginLeft: 6 }}>Select multiple</span>
-                </div>
+              {dietCuisineBlock}
 
-                {/* Diet grid */}
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#555", margin: "2px 0 8px" }}>🥗 Diet goal</div>
-                {(
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    {DIETS.map(item => {
-                      const isOn = diets.includes(item.id);
-                      return (
-                        <div key={item.id} onClick={() => setDiets(prev => isOn ? prev.filter(d => d !== item.id) : [...prev, item.id])}
-                          style={{ padding: "11px 6px", border: `1.5px solid ${isOn ? "#F97316" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#FFF4F0" : "white", cursor: "pointer", textAlign: "center" as const, position: "relative" as const }}>
-                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 14, color: "#F97316", fontWeight: 900 }}>✓</div>}
-                          <div style={{ fontSize: 20, marginBottom: 3 }}>{item.icon}</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#F97316" : "#999" }}>{item.id}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Cuisine grid */}
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#555", margin: "14px 0 8px" }}>🍜 Cuisine style</div>
-                {(
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    {CUISINES.map(item => {
-                      const isOn = cuisines.includes(item.id);
-                      return (
-                        <div key={item.id} onClick={() => setCuisines(prev => isOn ? prev.filter(c => c !== item.id) : [...prev, item.id])}
-                          style={{ padding: "11px 6px", border: `1.5px solid ${isOn ? "#2E7D32" : "#e5e0d8"}`, borderRadius: 14, background: isOn ? "#E8F5E9" : "white", cursor: "pointer", textAlign: "center" as const, position: "relative" as const }}>
-                          {isOn && <div style={{ position: "absolute" as const, top: 4, right: 6, fontSize: 14, color: "#2E7D32", fontWeight: 900 }}>✓</div>}
-                          <div style={{ fontSize: 20, marginBottom: 3 }}>{item.icon}</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: isOn ? "#2E7D32" : "#999" }}>{item.id}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Selected tags summary */}
-                {(diets.length > 0 || cuisines.length > 0) && (
-                  <div style={{ marginTop: 12, padding: "10px 12px", background: "#F1F8E9", borderRadius: 14, border: "1px solid #C8E6C9" }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#2E7D32", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Your selections:</div>
-                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-                      {diets.map(d => {
-                        const item = DIETS.find(x => x.id === d);
-                        return (
-                          <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF4F0", border: "1px solid #F97316", color: "#F97316", fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
-                            {item?.icon} {d}
-                            <span style={{ cursor: "pointer", marginLeft: 2 }} onClick={() => setDiets(prev => prev.filter(x => x !== d))}>×</span>
-                          </div>
-                        );
-                      })}
-                      {cuisines.map(c => {
-                        const item = CUISINES.find(x => x.id === c);
-                        return (
-                          <div key={c} style={{ display: "flex", alignItems: "center", gap: 4, background: "#E8F5E9", border: "1px solid #2E7D32", color: "#1A5C2E", fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
-                            {item?.icon} {c}
-                            <span style={{ cursor: "pointer", marginLeft: 2 }} onClick={() => setCuisines(prev => prev.filter(x => x !== c))}>×</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Family Profiles */}
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#1A5C2E", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span>👨‍👩‍👧‍👦 Family Profiles</span>
-                  <span style={{ fontSize: 14, color: "#999", fontWeight: 500 }}>optional</span>
-                </div>
-
-                {familyProfiles.length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, marginBottom: 10 }}>
-                    {familyProfiles.map((member, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F1F8E9", border: "1.5px solid #e5f0e5", borderRadius: 24 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ fontSize: 22 }}>{member.emoji}</span>
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: 14, color: "#1A5C2E" }}>{member.name}</div>
-                            <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>
-                              {[...member.diets, ...member.allergies].filter(Boolean).join(" · ") || "No restrictions"}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => setEditingMember({...member, index: i})} style={{ background: "#E8F5E9", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 14, cursor: "pointer", color: "#1A5C2E" }}>Edit</button>
-                          <button onClick={() => { const u = familyProfiles.filter((_,j)=>j!==i); setFamilyProfiles(u); try{localStorage.setItem("goeatai_family_profiles",JSON.stringify(u));}catch{} }}
-                            style={{ background: "#FFF0F0", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 14, cursor: "pointer", color: "#e63946" }}>✕</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <button onClick={() => setEditingMember({ name: "", emoji: "👤", diets: [], allergies: [], index: -1 })}
-                  style={{ width: "100%", padding: "11px 14px", border: "1.5px dashed #e5e0d8", borderRadius: 24, background: "white", fontSize: 14, fontWeight: 700, color: "#2E7D32", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                  + Add Family Member
-                </button>
-
-                {familyProfiles.length > 0 && (
-                  <div style={{ marginTop: 8, padding: "8px 12px", background: "#E8F5E9", borderRadius: 8, fontSize: 14, color: "#1A5C2E", fontWeight: 600 }}>
-                    ✅ GoEat AI will consider all {familyProfiles.length} member{familyProfiles.length > 1 ? "s" : ""}&apos; restrictions
-                  </div>
-                )}
-              </div>
+              {familyBlock}
 
               {/* CTA */}
               <button onClick={generate}
@@ -1600,37 +1608,11 @@ export default function GoEatApp() {
                 );
               })}
             </div>
-            {/* Diet and cuisine, right here (tap to toggle; several allowed) */}
-            {([
-              { label: "🥗 Diet", items: DIETS.filter(x => x.id !== "No Restriction"), sel: diets, set: setDiets, key: "diet" },
-              { label: "🌍 Cuisine", items: CUISINES.filter(x => x.id !== "Any Cuisine"), sel: cuisines, set: setCuisines, key: "cuisine" },
-            ] as const).map(row => (
-              <div key={row.key} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: "#1A5C2E", flexShrink: 0, width: 74 }}>{row.label}</span>
-                <div role="group" aria-label={row.key === "diet" ? "Diet" : "Cuisine"} style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", scrollbarWidth: "none" as const, paddingBottom: 2, minWidth: 0, flex: 1 }}>
-                <button aria-pressed={row.sel.length === 0} onClick={() => row.set([])}
-                  style={{ flex: "0 0 auto", minHeight: 40, padding: "0 12px", borderRadius: 99, border: `1.5px solid ${row.sel.length === 0 ? "#1A5C2E" : "#E3E3E3"}`, background: row.sel.length === 0 ? "#1A5C2E" : "white", color: row.sel.length === 0 ? "white" : "#555", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" as const }}>
-                  Any
-                </button>
-                {row.items.map(item => {
-                  const on = (row.sel as string[]).includes(item.id);
-                  return (
-                    <button key={item.id} aria-pressed={on}
-                      onClick={() => { row.set((prev: string[]) => on ? prev.filter(x => x !== item.id) : [...prev, item.id]); track("quick_setting_changed", { setting: row.key, value: item.id }); }}
-                      style={{ flex: "0 0 auto", minHeight: 40, padding: "0 12px", borderRadius: 99, border: `1.5px solid ${on ? "#1A5C2E" : "#E3E3E3"}`, background: on ? "#1A5C2E" : "white", color: on ? "white" : "#555", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" as const }}>
-                      {item.icon} {item.id}
-                    </button>
-                  );
-                })}
-                </div>
-              </div>
-            ))}
-            <button onClick={() => setEditSettings(v => !v)} aria-expanded={editSettings}
-              style={{ marginTop: 10, minHeight: 40, padding: "0 4px", border: "none", background: "none", color: "#1A5C2E", fontWeight: 800, fontSize: 13.5, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, fontFamily: "'Nunito', sans-serif" }}>
-              {editSettings ? "Hide family allergies" : `👨‍👩‍👧 Family allergies & food needs${familyProfiles.length ? ` (${familyProfiles.length})` : ""}`}
-            </button>
           </div>
-          {editSettings && settingsPanel}
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 20, padding: "16px 18px 8px" }}>
+            {dietCuisineBlock}
+            {familyBlock}
+          </div>
         </div>
       )}
 
