@@ -1610,15 +1610,35 @@ export default function GoEatApp() {
                 );
               })}
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, padding: "8px 12px", borderRadius: 14, background: "#F7FAF7" }}>
-              <span style={{ fontSize: 13, color: "#555", fontWeight: 700, minWidth: 0 }}>
-                {diets.length || cuisines.length ? [...diets, ...cuisines].join(" · ") : "Diet, cuisine, family allergies"}
-              </span>
-              <button onClick={() => setEditSettings(v => !v)} aria-expanded={editSettings}
-                style={{ flexShrink: 0, minHeight: 36, padding: "0 12px", borderRadius: 99, border: "1.5px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                {editSettings ? "Done" : "More options"}
-              </button>
-            </div>
+            {/* Diet and cuisine, right here (tap to toggle; several allowed) */}
+            {([
+              { label: "🥗 Diet", items: DIETS.filter(x => x.id !== "No Restriction"), sel: diets, set: setDiets, key: "diet" },
+              { label: "🌍 Cuisine", items: CUISINES.filter(x => x.id !== "Any Cuisine"), sel: cuisines, set: setCuisines, key: "cuisine" },
+            ] as const).map(row => (
+              <div key={row.key} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#1A5C2E", flexShrink: 0, width: 74 }}>{row.label}</span>
+                <div role="group" aria-label={row.key === "diet" ? "Diet" : "Cuisine"} style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", scrollbarWidth: "none" as const, paddingBottom: 2, minWidth: 0, flex: 1 }}>
+                <button aria-pressed={row.sel.length === 0} onClick={() => row.set([])}
+                  style={{ flex: "0 0 auto", minHeight: 40, padding: "0 12px", borderRadius: 99, border: `1.5px solid ${row.sel.length === 0 ? "#1A5C2E" : "#E3E3E3"}`, background: row.sel.length === 0 ? "#1A5C2E" : "white", color: row.sel.length === 0 ? "white" : "#555", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" as const }}>
+                  Any
+                </button>
+                {row.items.map(item => {
+                  const on = (row.sel as string[]).includes(item.id);
+                  return (
+                    <button key={item.id} aria-pressed={on}
+                      onClick={() => { row.set((prev: string[]) => on ? prev.filter(x => x !== item.id) : [...prev, item.id]); track("quick_setting_changed", { setting: row.key, value: item.id }); }}
+                      style={{ flex: "0 0 auto", minHeight: 40, padding: "0 12px", borderRadius: 99, border: `1.5px solid ${on ? "#1A5C2E" : "#E3E3E3"}`, background: on ? "#1A5C2E" : "white", color: on ? "white" : "#555", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Nunito', sans-serif", whiteSpace: "nowrap" as const }}>
+                      {item.icon} {item.id}
+                    </button>
+                  );
+                })}
+                </div>
+              </div>
+            ))}
+            <button onClick={() => setEditSettings(v => !v)} aria-expanded={editSettings}
+              style={{ marginTop: 10, minHeight: 40, padding: "0 4px", border: "none", background: "none", color: "#1A5C2E", fontWeight: 800, fontSize: 13.5, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, fontFamily: "'Nunito', sans-serif" }}>
+              {editSettings ? "Hide family allergies" : `👨‍👩‍👧 Family allergies & food needs${familyProfiles.length ? ` (${familyProfiles.length})` : ""}`}
+            </button>
           </div>
           {editSettings && settingsPanel}
         </div>
