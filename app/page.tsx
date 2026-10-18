@@ -588,11 +588,12 @@ export default function GoEatApp() {
   const overBudget = result && typeof result.totalCost === "number" && Number(result.budget) > 0
     ? Math.round((result.totalCost - Number(result.budget)) * 100) / 100 : 0;
 
-  async function trimShoppingList() {
+  const autoTrimmedFor = useRef<unknown>(null);
+  async function trimShoppingList(auto = false) {
     if (!result?.shoppingList) return;
     setTrimming(true);
     setTrimError("");
-    track("trim_to_budget_clicked", { over: overBudget });
+    track(auto ? "trim_to_budget_auto" : "trim_to_budget_clicked", { over: overBudget });
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -601,6 +602,7 @@ export default function GoEatApp() {
       });
       const data = res.ok ? await res.json() : null;
       if (!data || !Array.isArray(data.shoppingList)) throw new Error("no list");
+      autoTrimmedFor.current = data.shoppingList; // a trimmed list is never auto-trimmed again
       const cur = resultRef.current || result;
       const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
       setResult(next);
@@ -611,6 +613,17 @@ export default function GoEatApp() {
     }
     setTrimming(false);
   }
+
+  // Far over budget (>10%)? Fit the list once by itself, so people don't land on a scary number.
+  useEffect(() => {
+    const list = result?.shoppingList;
+    if (!list || shoppingStale || shopUpdating || trimming) return;
+    if (overBudget <= Number(result.budget) * 0.1) return;
+    if (autoTrimmedFor.current === list) return;
+    autoTrimmedFor.current = list;
+    trimShoppingList(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, shoppingStale, shopUpdating, trimming, overBudget]);
 
   // ---------- Sample week (instant, no AI call) ----------
   function openSample(from: string) {
@@ -1886,8 +1899,8 @@ export default function GoEatApp() {
                 {[
                   { icon: "🛒", val: typeof result.totalCost === "number" ? `${result.sym}${result.totalCost.toFixed(2)}` : "…", lbl: "Est. Grocery Cost", note: `of ${result.sym}${result.budget} budget`, color: "#2E7D32" },
                   overBudget > 0
-                    ? { icon: "⚠️", val: `+${result.sym}${overBudget.toFixed(2)}`, lbl: "Over budget", note: "Trim the list below", color: "#C62828" }
-                    : { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Estimated Savings", note: `left in your ${result.sym}${result.budget} budget`, color: "#F97316" },
+                    ? { icon: "⚠️", val: `+${result.sym}${overBudget.toFixed(2)}`, lbl: "Over budget", note: `over your ${result.sym}${result.budget} budget`, color: "#C62828" }
+                    : { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Under budget", note: `of your ${result.sym}${result.budget} budget`, color: "#2E7D32" },
                   { icon: "♻️", val: result.wasteReduction?.estimatedWasteReduced, lbl: "Waste Reduced", note: "AI estimate", color: "#457b9d" },
                   { icon: "🍱", val: result.wasteReduction?.mealsFromLeftovers, lbl: "Leftover Meals", note: "planned this week", color: "#e63946" },
                 ].filter(x => x.val !== undefined && x.val !== null && x.val !== "").map(({ icon, val, lbl, note, color }) => (
@@ -1902,7 +1915,7 @@ export default function GoEatApp() {
 
               {overBudget > 0 && !shoppingStale && (
                 <div style={{ margin: "0 22px 12px" }}>
-                  <button onClick={trimShoppingList} disabled={trimming}
+                  <button onClick={() => trimShoppingList()} disabled={trimming}
                     style={{ width: "100%", minHeight: 48, borderRadius: 99, border: "none", background: "#C62828", color: "white", fontWeight: 800, fontSize: 15, cursor: trimming ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
                     {trimming ? "Trimming the list…" : `✂️ Trim list to ${result.sym}${result.budget}`}
                   </button>
@@ -1990,13 +2003,27 @@ export default function GoEatApp() {
                 <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }}>at {result.store} · family of {result.family}</div>
               </div>
 
-              {/* Estimated savings */}
-              <div style={{ background: "#FFF4F0", border: "1.5px solid #F97316", borderRadius: 22, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 24 }}>💰</span>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: "#F97316" }}>{overBudget > 0 ? `Over budget by ${result.sym}${overBudget.toFixed(2)}` : `Estimated savings: ${typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…"}`}</div>
-                  <div style={{ fontSize: 14, color: "#999", marginTop: 2 }}>left in your {result.sym}{result.budget} weekly budget</div>
+              {/* Budget check */}
+              <div style={{ background: overBudget > 0 ? "#FFF0F0" : "#F1F8E9", border: `1.5px solid ${overBudget > 0 ? "#E57373" : "#81C784"}`, borderRadius: 22, padding: "14px 16px", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>{overBudget > 0 ? "⚠️" : "💰"}</span>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: overBudget > 0 ? "#C62828" : "#2E7D32" }}>
+                      {overBudget > 0 ? `${result.sym}${overBudget.toFixed(2)} over budget` : typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)} under budget` : "Checking your budget…"}
+                    </div>
+                    <div style={{ fontSize: 14, color: "#777", marginTop: 2 }}>Your weekly budget: {result.sym}{result.budget}</div>
+                  </div>
                 </div>
+                {overBudget > 0 && !shoppingStale && (
+                  <>
+                    <button onClick={() => trimShoppingList()} disabled={trimming}
+                      style={{ width: "100%", minHeight: 46, marginTop: 12, borderRadius: 99, border: "none", background: "#C62828", color: "white", fontWeight: 800, fontSize: 15, cursor: trimming ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                      {trimming ? "Fitting the list to your budget…" : `✂️ Trim list to ${result.sym}${result.budget}`}
+                    </button>
+                    <div style={{ fontSize: 12.5, color: "#999", marginTop: 6, textAlign: "center" }}>Smaller packs and cheaper staples. Your meals stay the same.</div>
+                    {trimError && <div role="alert" style={{ marginTop: 6, fontSize: 13, color: "#B4400A" }}>{trimError}</div>}
+                  </>
+                )}
               </div>
 
               {/* Disclaimer */}
