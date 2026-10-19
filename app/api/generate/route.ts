@@ -139,6 +139,26 @@ const SHOPPING_SHAPE = `"shoppingList": [
     { "category": "Condiments", "emoji": "🧂", "items": [] }
   ]`;
 
+// Budget-first planning: the meal plan itself must fit the grocery budget,
+// not just the shopping list afterwards.
+function budgetRules(budget: unknown, family: unknown, sym: string, store: string, strict: boolean) {
+  const b = Number(budget) || 0;
+  const people = Math.max(1, Number(family) || 1);
+  if (!(b > 0)) return "";
+  const perServing = b / (people * 21);
+  const tight = strict || perServing < 3.5;
+  const bulk = /costco|sam'?s|bj'?s/i.test(store);
+  return `BUDGET FIRST (most important rule): every ingredient for all 21 meals must be buyable for ${sym}${b} total at ${store} for ${people} people.
+That is about ${sym}${perServing.toFixed(2)} per person per meal${tight ? ", which is a TIGHT budget" : ""}. Plan the meals so the grocery list fits it:
+- Build the whole week from a small shared base: ${tight ? "2-3" : "3-4"} main proteins bought in family packs and used across several dishes in different styles, plus a few versatile vegetables and one or two starches (rice, pasta, potatoes, tortillas, bread).
+- Breakfasts: rotate ${tight ? "2-3" : "3-4"} cheap options (eggs, oats, toast, yogurt, pancakes); repeating a breakfast is fine.
+- Lunches: mostly leftovers from the night before, turned into a different dish (stir-fry → fried rice, roast chicken → wraps).
+${tight ? `- Favor cheap protein: eggs, beans, lentils, tofu, chicken thighs, ground meat, canned fish. Skip pricey items (steak, salmon, shrimp, lamb, nuts, specialty sauces, fresh herbs used once).
+` : `- Use pricier items (salmon, steak, shrimp) at most once or twice a week.
+`}${bulk ? `- ${store} sells big packs: plan meals that use up each pack across the week instead of buying many different packs.
+` : ""}- Variety still matters, but never at the cost of the budget.`;
+}
+
 function pricingRules(country: string, store: string) {
   return `PER-ITEM PRICING (for accuracy and consistency):
 - Reference prices for this country, to keep pricing realistic and consistent across different plans (adjust up/down for ${store} specifically, and for the exact quantity you list): ${PRICE_ANCHORS[country] || PRICE_ANCHORS.US}
@@ -150,7 +170,7 @@ function pricingRules(country: string, store: string) {
 export async function POST(req: NextRequest) {
   try {
     const { family, budget, store, diet, cuisine, country, ingredients, recipeOnly, recipeName, familyProfiles,
-      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly, previousPlanMeals, trimList } = await req.json();
+      pinnedMeals, includeMeals, swapMeal, avoidMeals, shoppingFromPlan, mealsOnly, previousPlanMeals, trimList, strictBudget } = await req.json();
 
     // ---------- Recipe only mode ----------
     if (recipeOnly && recipeName) {
@@ -244,7 +264,8 @@ Meat & Protein | Chicken thighs | 2 kg | 13.99
 Produce | Broccoli | 2 heads | 4.49
 
 Rules:
-- Include what's needed to cook the meals above, combined across meals (no duplicates). Pantry staples most kitchens have (salt, pepper, cooking oil) can be skipped.
+- Include what's needed to cook the meals above, combined across meals (no duplicates). Pantry staples most kitchens have (salt, pepper, cooking oil, basic dried spices) can be skipped.
+- Buy the fewest packages that cover the week: one pack used by several meals, not a separate pack per meal. Quantities should match what ${family} people eat in 7 days, not more.
 - Keep the total around 85-95% of ${sym}${budget}, and NEVER above ${sym}${budget}: add up the prices as you go and pick smaller packs or cheaper staples if needed.
 ${pricingRules(country, store)}`;
       const shop: { shoppingList?: unknown } = { shoppingList: parseShoppingLines(await callClaudeText(shopPrompt, 1800)) };
@@ -316,14 +337,12 @@ Return ONLY valid JSON (no markdown):
 }
 Rules:
 - All 7 days Mon-Sun, 3 meals each.
-- Keep it affordable for the budget: reuse ingredients across meals and plan leftovers.
 - Follow ${diet} diet.
-VARIETY (important):
-- 21 different dishes. Never repeat a dish, and don't serve near-duplicates (e.g. two different chicken stir-fries).
-- Unless the user picked a cuisine, mix at least 5 cuisines across the week (e.g. Korean, Mexican, Italian, Indian, Japanese, Mediterranean, Thai, American, Middle Eastern, Vietnamese...).
-- Within the diet, rotate proteins (chicken, beef, pork, fish/seafood, eggs, tofu/beans/lentils) and don't use the same main protein for two dinners in a row.
-- Vary cooking styles (stir-fry, soup/stew, roasted/baked, grilled, salad/bowl, pasta/noodles) and vary breakfasts too (not oats every day).
-- Leftover reuse is fine, but turn it into a different dish.
+${budgetRules(budget, family, sym, store, !!strictBudget)}
+VARIETY (within the budget):
+- Lunches and dinners should feel different every day: change the dish and cooking style (stir-fry, soup/stew, roasted/baked, grilled, salad/bowl, pasta/noodles) even when the ingredients are shared. Don't serve near-duplicates (e.g. two chicken stir-fries).
+- Unless the user picked a cuisine, mix 3-5 cuisines across the week, using the same shared ingredients.
+- Don't use the same main protein for two dinners in a row.
 ${previousMeals ? `- Last time this user got: ${previousMeals}. Make this week feel different: don't reuse those dishes (dishes the user chose above are the exception).` : ""}
 - Some dishes have photos in the app: ${photoDishSample(40)}. You MAY use a few of these (exact name) when they fit, but variety comes first; any good home-cooked dish is welcome.
 - "tip": under 8 words. "calories": an estimate per serving.

@@ -341,7 +341,16 @@ export default function GoEatApp() {
     setEditingIndex(null);
   }
 
+  // "Make a cheaper week": same picks, stricter budget planning.
+  const strictNext = useRef(false);
+  function generateCheaper() {
+    track("cheaper_week_clicked", { over: overBudget });
+    strictNext.current = true;
+    generate();
+  }
   async function generate() {
+    const strictBudget = strictNext.current;
+    strictNext.current = false;
     const eff = budget || "150";
     setError("");
     setScreen("loading");
@@ -363,7 +372,7 @@ export default function GoEatApp() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true,
+        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true, strictBudget,
           previousPlanMeals: (result?.mealPlan || readJSON<any>(KEYS.lastResult, null)?.mealPlan || []).flatMap((d: any) => (d.meals || []).map((m: any) => m.name)) })
       });
 
@@ -2021,6 +2030,11 @@ export default function GoEatApp() {
                       {trimming ? "Fitting the list to your budget…" : `✂️ Trim list to ${result.sym}${result.budget}`}
                     </button>
                     <div style={{ fontSize: 12.5, color: "#999", marginTop: 6, textAlign: "center" }}>Smaller packs and cheaper staples. Your meals stay the same.</div>
+                    <button onClick={generateCheaper} disabled={trimming}
+                      style={{ width: "100%", minHeight: 44, marginTop: 10, borderRadius: 99, border: "1.5px solid #C62828", background: "white", color: "#C62828", fontWeight: 800, fontSize: 14.5, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                      🔄 Make a cheaper week instead
+                    </button>
+                    <div style={{ fontSize: 12.5, color: "#999", marginTop: 6, textAlign: "center" }}>New meals built to fit {result.sym}{result.budget}. Dishes you picked stay.</div>
                     {trimError && <div role="alert" style={{ marginTop: 6, fontSize: 13, color: "#B4400A" }}>{trimError}</div>}
                   </>
                 )}
