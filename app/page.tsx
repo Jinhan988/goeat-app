@@ -1617,6 +1617,17 @@ export default function GoEatApp() {
             {budget && !["100", "150", "200", "250", "300"].includes(budget) && (
               <div style={{ fontSize: 12.5, color: "#666", marginTop: 4, paddingLeft: 2 }}>Custom budget: {sym}{budget}/week</div>
             )}
+            {(() => {
+              const people = Math.max(1, Number(family) || 1);
+              const perPerson = Number(budget || "150") / people;
+              const floor = country === "CA" ? 35 : 30;
+              if (!(perPerson < floor)) return null;
+              return (
+                <div role="note" style={{ fontSize: 13, color: "#8A5A00", background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 12, padding: "8px 10px", marginTop: 6, lineHeight: 1.4 }}>
+                  ⚠️ This is a very tight budget for {people} {people === 1 ? "person" : "people"}. We&apos;ll use low-cost basics (rice, beans, eggs), and the list may still go a little over.
+                </div>
+              );
+            })()}
             <div role="group" aria-label="Store" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, overflowX: "auto", scrollbarWidth: "none" as const, paddingBottom: 2 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: "#1A5C2E", flexShrink: 0, marginRight: 2 }}>🏪 Store</span>
               {stores.map(st => {

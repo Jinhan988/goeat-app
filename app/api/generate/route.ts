@@ -111,12 +111,15 @@ function sumList(r: { shoppingList?: unknown }): number {
 }
 
 // If the list is over budget, ask the model once to trim it. Returns the new total.
-async function trimToBudget(r: { shoppingList?: unknown }, total: number, budgetNum: number, sym: string, store: string): Promise<number> {
+async function trimToBudget(r: { shoppingList?: unknown }, total: number, budgetNum: number, sym: string, store: string, family?: unknown): Promise<number> {
   if (!(budgetNum > 0 && total > budgetNum)) return total;
   const trimPrompt = `This shopping list totals ${sym}${total}, which is over the ${sym}${budgetNum} budget.
 Shopping list JSON: ${JSON.stringify(r.shoppingList)}
 
-Return ONLY the corrected "shoppingList" as valid JSON (same shape, no markdown), edited so the sum of all prices is at or under ${sym}${budgetNum}. Reduce quantities, remove the least essential items, or substitute cheaper alternatives. Keep it realistic for ${store}.
+Return ONLY the corrected "shoppingList" as valid JSON (same shape, no markdown), edited to bring the total at or under ${sym}${budgetNum} if that is honestly possible.
+Allowed: cheaper equivalent items (store brand, a cheaper cut, frozen or canned instead of fresh), smaller packs when the full pack isn't needed for the week, and dropping true extras (garnishes, optional toppings, snacks not tied to a meal).
+NOT allowed: removing an ingredient a planned meal needs, or cutting quantities below what the household${Number(family) > 0 ? ` of ${Number(family)}` : ""} needs for 7 days of meals. Never lower a price below a realistic shelf price at ${store}.
+If the list still can't fit the budget under these rules, return the cheapest honest version even if it is over budget.
 { "shoppingList": [ ... ] }`;
   try {
     const trimmed = await callClaude(trimPrompt, 3000);
@@ -231,7 +234,7 @@ Return ONLY valid JSON (no markdown):
       const shop: { shoppingList?: unknown } = { shoppingList: trimList };
       let total = sumList(shop);
       const budgetNum = Number(budget) || 0;
-      total = await trimToBudget(shop, total, budgetNum, sym, store);
+      total = await trimToBudget(shop, total, budgetNum, sym, store, family);
       return NextResponse.json({
         shoppingList: shop.shoppingList,
         totalCost: total,
