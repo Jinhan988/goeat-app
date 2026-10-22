@@ -331,8 +331,7 @@ Return ONLY valid JSON (no markdown):
     ]}
   ],
   "wasteReduction": {
-    "mealsFromLeftovers": <count of meals in THIS plan that reuse leftovers from an earlier meal>,
-    "estimatedWasteReduced": "<your rough estimate for THIS plan, e.g. '1.2 kg'>"
+    "mealsFromLeftovers": <count of meals in THIS plan that reuse leftovers from an earlier meal>
   }
 }
 Rules:

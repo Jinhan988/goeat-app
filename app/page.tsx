@@ -1634,6 +1634,11 @@ export default function GoEatApp() {
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 20, padding: "16px 18px 8px" }}>
             {dietCuisineBlock}
             {familyBlock}
+            <button onClick={() => { track("week_generate_clicked", { picks: weekPicks.length, edited: editSettings, from: "bottom" }); window.scrollTo(0, 0); generate(); }}
+              aria-label="Start planning (bottom of page)"
+              style={{ width: "100%", minHeight: 56, marginBottom: 12, borderRadius: 99, border: "none", background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 900, fontSize: 17, cursor: "pointer", boxShadow: "0 6px 16px rgba(232,98,10,0.3)", fontFamily: "'Nunito', sans-serif" }}>
+              🍽️ {weekPicks.length + includeMeals.length > 0 ? "Build my week with these" : "Build my 7-day plan"}
+            </button>
           </div>
         </div>
       )}
@@ -1910,7 +1915,6 @@ export default function GoEatApp() {
                   overBudget > 0
                     ? { icon: "⚠️", val: `+${result.sym}${overBudget.toFixed(2)}`, lbl: "Over budget", note: `over your ${result.sym}${result.budget} budget`, color: "#C62828" }
                     : { icon: "💰", val: typeof result.savings === "number" ? `${result.sym}${result.savings.toFixed(2)}` : "…", lbl: "Under budget", note: `of your ${result.sym}${result.budget} budget`, color: "#2E7D32" },
-                  { icon: "♻️", val: result.wasteReduction?.estimatedWasteReduced, lbl: "Waste Reduced", note: "AI estimate", color: "#457b9d" },
                   { icon: "🍱", val: result.wasteReduction?.mealsFromLeftovers, lbl: "Leftover Meals", note: "planned this week", color: "#e63946" },
                 ].filter(x => x.val !== undefined && x.val !== null && x.val !== "").map(({ icon, val, lbl, note, color }) => (
                   <div key={lbl} style={{ background: "white", border: "1.5px solid #E8F5E9", borderRadius: 22, padding: "14px 14px 12px" }}>
@@ -2049,32 +2053,10 @@ export default function GoEatApp() {
                 <div style={{ fontSize: 14, color: "#1A5C2E", fontWeight: 600, lineHeight: 1.7 }}>
                   💡 Est. cost per meal: ~{result.sym}{result.totalCost ? (result.totalCost / (7 * 3 * result.family)).toFixed(2) : "—"} per person<br />
                   💡 Est. cost per day: ~{result.sym}{result.totalCost ? (result.totalCost / 7).toFixed(2) : "—"} for the family<br />
-                  {result.wasteReduction?.estimatedWasteReduced && <>♻️ ~{result.wasteReduction.estimatedWasteReduced} of food waste avoided (AI estimate)<br /></>}
-                  {result.wasteReduction?.co2Saved && <>🌍 ~{result.wasteReduction.co2Saved} carbon emissions saved (AI estimate)</>}
                 </div>
               </div>
             </div>
           )}
-
-          {/* Impact */}
-          <div style={{ height: 8, background: "#F7FBF7", margin: "4px 0" }} />
-          <div style={{ margin: "0 22px 18px", background: "linear-gradient(135deg,#1A5C2E,#2E7D32)", borderRadius: 22, padding: 20, color: "white" }}>
-            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#F87171", marginBottom: 8 }}>❤️ GoEatAI Impact</div>
-            <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 10, lineHeight: 1.3 }}>This plan makes a difference.</div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Rough AI estimates for this plan.</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              {[
-                { val: result.wasteReduction?.estimatedWasteReduced, lbl: "Food Saved" },
-                { val: result.wasteReduction?.co2Saved, lbl: "CO₂ Reduced" },
-                { val: typeof result.wasteReduction?.moneySavedFromWaste === "number" ? `${result.sym}${result.wasteReduction.moneySavedFromWaste.toFixed(2)}` : undefined, lbl: "Extra Saved" },
-              ].filter(x => !!x.val).map(({ val, lbl }) => (
-                <div key={lbl} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 8px", textAlign: "center" as const }}>
-                  <div style={{ fontWeight: 900, fontSize: 14, color: "#81C784" }}>{val}</div>
-                  <div style={{ fontSize: 14, opacity: 0.7, marginTop: 2, fontWeight: 600 }}>{lbl}</div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           <div style={{ padding: "4px 22px 32px", display: "flex", flexDirection: "column", gap: 10 }}>
             {/* Save Plan Button */}
