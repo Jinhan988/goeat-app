@@ -4,8 +4,15 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
-  title: "GoEat AI — Smart meal plans. Smarter savings.",
-  description: "Snap your fridge. Get a personalized 7-day meal plan with calories, shopping list, and estimated savings.",
+  title: "GoEat AI — What's for dinner this week?",
+  description: "Pick dishes you love. Get a 7-day meal plan and grocery list with an estimated budget. Free, no sign-up. For the US and Canada.",
+  openGraph: {
+    title: "GoEat AI — What's for dinner this week?",
+    description: "Pick dishes you love. Get a 7-day meal plan and grocery list with an estimated budget. Free, no sign-up.",
+    url: "https://app.goeatai.com",
+    siteName: "GoEat AI",
+    type: "website",
+  },
 };
 
 const GA_ID = "G-D82DXCRQ07";

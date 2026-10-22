@@ -1035,7 +1035,7 @@ export default function GoEatApp() {
                 <span style={{ color: "#1A5C2E" }}>Go</span><span style={{ color: "#F97316" }}>Eat</span>
                 <span style={{ fontSize: 14, background: "#4CAF50", color: "white", fontWeight: 800, padding: "2px 7px", borderRadius: 8, marginLeft: 5, verticalAlign: "middle", fontFamily: "'Nunito', sans-serif" }}>AI</span>
               </div>
-              <div style={{ fontSize: 11, color: "#999", fontWeight: 600, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170 }}>Smart meal plans. Smarter savings.</div>
+              <div style={{ fontSize: 11, color: "#999", fontWeight: 600, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170 }}>Pick dishes. Plan your week.</div>
             </div>
           </div>
           <button onClick={() => setView("saved")}
