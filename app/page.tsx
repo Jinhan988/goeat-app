@@ -623,11 +623,11 @@ export default function GoEatApp() {
     setTrimming(false);
   }
 
-  // Far over budget (>10%)? Fit the list once by itself, so people don't land on a scary number.
+  // Over budget at all? Fit the list once by itself, so people land on a list that fits.
   useEffect(() => {
     const list = result?.shoppingList;
     if (!list || shoppingStale || shopUpdating || trimming) return;
-    if (overBudget <= Number(result.budget) * 0.1) return;
+    if (overBudget <= 0) return;
     if (autoTrimmedFor.current === list) return;
     autoTrimmedFor.current = list;
     trimShoppingList(true);
