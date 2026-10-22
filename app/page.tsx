@@ -571,7 +571,7 @@ export default function GoEatApp() {
       // The plan was cleared or changed while we waited: drop this list.
       // (If it changed, it is still marked stale and gets rebuilt.)
       if (!cur || cur.mealPlan !== planSent) { setShopUpdating(false); return; }
-      const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
+      const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings, fitTried: false };
       setResult(next);
       setChecked({});
       setShoppingStale(false);
@@ -613,7 +613,7 @@ export default function GoEatApp() {
       if (!data || !Array.isArray(data.shoppingList)) throw new Error("no list");
       autoTrimmedFor.current = data.shoppingList; // a trimmed list is never auto-trimmed again
       const cur = resultRef.current || result;
-      const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings };
+      const next = { ...cur, shoppingList: data.shoppingList, totalCost: data.totalCost, savings: data.savings, fitTried: true };
       setResult(next);
       setChecked({});
       persistResult(next, false);
@@ -628,11 +628,59 @@ export default function GoEatApp() {
     const list = result?.shoppingList;
     if (!list || shoppingStale || shopUpdating || trimming) return;
     if (overBudget <= 0) return;
-    if (autoTrimmedFor.current === list) return;
+    if (autoTrimmedFor.current === list || result.fitTried) return;
     autoTrimmedFor.current = list;
     trimShoppingList(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, shoppingStale, shopUpdating, trimming, overBudget]);
+
+  // What to offer when the list is over budget. After one honest fit attempt we
+  // don't offer the same trim again; we offer real choices instead.
+  function nextBudgetFor(total: number) {
+    const chip = [100, 150, 200, 250, 300].find(b => b >= total);
+    return chip ?? Math.ceil(total / 50) * 50;
+  }
+  function useBudget(nb: number) {
+    if (!result) return;
+    track("budget_raised_to_fit", { from: result.budget, to: nb });
+    setBudget(String(nb));
+    const total = typeof result.totalCost === "number" ? result.totalCost : 0;
+    const next = { ...result, budget: String(nb), savings: Math.max(0, Math.round((nb - total) * 100) / 100) };
+    setResult(next);
+    persistResult(next, false);
+  }
+  function overBudgetActions(top: number) {
+    if (!result || overBudget <= 0 || shoppingStale) return null;
+    const tried = autoTrimmedFor.current === result.shoppingList || !!result.fitTried;
+    const nb = nextBudgetFor(result.totalCost);
+    const btn = (primary: boolean) => ({ width: "100%", minHeight: 46, marginTop: 10, borderRadius: 99, border: primary ? "none" : "1.5px solid #C62828", background: primary ? "#C62828" : "white", color: primary ? "white" : "#C62828", fontWeight: 800, fontSize: 15, cursor: trimming ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" });
+    const note = { fontSize: 12.5, color: "#888", marginTop: 6, textAlign: "center" as const };
+    return (
+      <div style={{ marginTop: top }}>
+        {!tried ? (
+          <>
+            <button onClick={() => trimShoppingList()} disabled={trimming} style={btn(true)}>
+              {trimming ? "Fitting the list to your budget…" : `✂️ Trim list to ${result.sym}${result.budget}`}
+            </button>
+            <div style={note}>Smaller packs and cheaper staples. Your meals stay the same.</div>
+          </>
+        ) : (
+          <div style={{ fontSize: 13.5, color: "#7A2E2E", lineHeight: 1.45, background: "#FFF6F6", borderRadius: 12, padding: "8px 10px" }}>
+            We kept every ingredient and the amounts your family needs for 7 days. With these meals, the list comes to about {result.sym}{Math.round(result.totalCost)}.
+          </div>
+        )}
+        <button onClick={generateCheaper} disabled={trimming} style={btn(tried)}>🔄 Make a cheaper week</button>
+        <div style={note}>New, simpler meals built to fit {result.sym}{result.budget}. Dishes you picked stay.</div>
+        {tried && (
+          <>
+            <button onClick={() => useBudget(nb)} style={{ ...btn(false), border: "1.5px solid #1A5C2E", color: "#1A5C2E" }}>Keep these meals · budget {result.sym}{nb}</button>
+            <div style={note}>Sets your weekly budget to {result.sym}{nb}. Nothing else changes.</div>
+          </>
+        )}
+        {trimError && <div role="alert" style={{ marginTop: 6, fontSize: 13, color: "#B4400A" }}>{trimError}</div>}
+      </div>
+    );
+  }
 
   // ---------- Sample week (instant, no AI call) ----------
   function openSample(from: string) {
@@ -1937,15 +1985,7 @@ export default function GoEatApp() {
                 ))}
               </div>
 
-              {overBudget > 0 && !shoppingStale && (
-                <div style={{ margin: "0 22px 12px" }}>
-                  <button onClick={() => trimShoppingList()} disabled={trimming}
-                    style={{ width: "100%", minHeight: 48, borderRadius: 99, border: "none", background: "#C62828", color: "white", fontWeight: 800, fontSize: 15, cursor: trimming ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                    {trimming ? "Trimming the list…" : `✂️ Trim list to ${result.sym}${result.budget}`}
-                  </button>
-                  {trimError && <div role="alert" style={{ marginTop: 6, fontSize: 13, color: "#B4400A" }}>{trimError}</div>}
-                </div>
-              )}
+              {overBudget > 0 && !shoppingStale && <div style={{ margin: "0 22px 12px" }}>{overBudgetActions(0)}</div>}
 
               {/* Disclaimer */}
               <div style={{ margin: "0 22px 16px", background: "#FFF8E6", border: "1px solid #F5C842", borderRadius: 14, padding: "8px 12px", fontSize: 14, color: "#856404" }}>
@@ -2038,21 +2078,7 @@ export default function GoEatApp() {
                     <div style={{ fontSize: 14, color: "#777", marginTop: 2 }}>Your weekly budget: {result.sym}{result.budget}</div>
                   </div>
                 </div>
-                {overBudget > 0 && !shoppingStale && (
-                  <>
-                    <button onClick={() => trimShoppingList()} disabled={trimming}
-                      style={{ width: "100%", minHeight: 46, marginTop: 12, borderRadius: 99, border: "none", background: "#C62828", color: "white", fontWeight: 800, fontSize: 15, cursor: trimming ? "wait" : "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                      {trimming ? "Fitting the list to your budget…" : `✂️ Trim list to ${result.sym}${result.budget}`}
-                    </button>
-                    <div style={{ fontSize: 12.5, color: "#999", marginTop: 6, textAlign: "center" }}>Smaller packs and cheaper staples. Your meals stay the same.</div>
-                    <button onClick={generateCheaper} disabled={trimming}
-                      style={{ width: "100%", minHeight: 44, marginTop: 10, borderRadius: 99, border: "1.5px solid #C62828", background: "white", color: "#C62828", fontWeight: 800, fontSize: 14.5, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
-                      🔄 Make a cheaper week instead
-                    </button>
-                    <div style={{ fontSize: 12.5, color: "#999", marginTop: 6, textAlign: "center" }}>New meals built to fit {result.sym}{result.budget}. Dishes you picked stay.</div>
-                    {trimError && <div role="alert" style={{ marginTop: 6, fontSize: 13, color: "#B4400A" }}>{trimError}</div>}
-                  </>
-                )}
+                {overBudgetActions(4)}
               </div>
 
               {/* Disclaimer */}
