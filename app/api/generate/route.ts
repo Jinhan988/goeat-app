@@ -31,7 +31,7 @@ const PRICE_ANCHORS: Record<string, string> = {
   US: `Eggs (dozen) ~$3.50, Milk (1 gal) ~$3.80, Chicken breast (1lb) ~$4-5, Ground beef (1lb) ~$5-6, Rice (2lb) ~$3, Bread (loaf) ~$3, Bananas (1lb) ~$0.60, Butter (1lb) ~$4.50, Cheddar cheese (8oz) ~$3.50, Pasta (1lb) ~$1.50, Onions (1lb) ~$1, Potatoes (5lb bag) ~$4, Canned beans ~$1.20, Yogurt (32oz) ~$4.50, Frozen vegetables (1lb) ~$2.50`,
 };
 
-async function callClaude(prompt: string, maxTokens: number) {
+async function callClaudeOnce(prompt: string, maxTokens: number) {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -46,7 +46,8 @@ async function callClaude(prompt: string, maxTokens: number) {
     }),
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`API ${response.status} (${data.error?.message || "unknown"})`);
   const text: string = data.content?.[0]?.text || "";
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -54,6 +55,18 @@ async function callClaude(prompt: string, maxTokens: number) {
     throw new Error(`No JSON returned (${data.error?.message || data.stop_reason || "unknown"})`);
   }
   return JSON.parse(text.slice(start, end + 1));
+}
+
+// One quiet retry: busy API (429/5xx), a cut-off answer or bad JSON usually
+// succeed on the second try, and a failed plan is the worst first impression.
+async function callClaude(prompt: string, maxTokens: number) {
+  try {
+    return await callClaudeOnce(prompt, maxTokens);
+  } catch (e) {
+    console.error("Claude call failed, retrying once:", e);
+    await new Promise(r => setTimeout(r, 700));
+    return await callClaudeOnce(prompt, Math.round(maxTokens * 1.3));
+  }
 }
 
 async function callClaudeText(prompt: string, maxTokens: number): Promise<string> {
@@ -395,7 +408,10 @@ Other rules:
 
 ${pricingRules(country, store)}`;
 
-    let result = await callClaude(mealsOnly ? mealsPrompt : prompt, mealsOnly ? 2500 : 4500);
+    let result = await callClaude(mealsOnly ? mealsPrompt : prompt, mealsOnly ? 3200 : 4500);
+    if (!Array.isArray(result.mealPlan) || result.mealPlan.length < 7) {
+      result = await callClaude(mealsOnly ? mealsPrompt : prompt, mealsOnly ? 3200 : 4500);
+    }
     if (!Array.isArray(result.mealPlan) || result.mealPlan.length === 0) {
       return NextResponse.json({ error: "No meal plan returned" }, { status: 502 });
     }

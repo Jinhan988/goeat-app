@@ -116,6 +116,8 @@ export default function GoEatApp() {
   const scanPreviewRef = useRef<HTMLDivElement>(null);
 
   const sym = country === "CA" ? "CA$" : "$";
+  // First-timers get one clear promise and two actions; returning people get the tools.
+  const isNewVisitor = !result && weekPicks.length === 0 && savedRecipes.length === 0;
   const stores = country === "CA" ? CA_STORES : US_STORES;
 
   // Short logo splash on first entry per session; the feed loads underneath.
@@ -125,7 +127,11 @@ export default function GoEatApp() {
     track("app_view");
     let seen = false;
     try { seen = sessionStorage.getItem("goeatai_splash_seen") === "1"; sessionStorage.setItem("goeatai_splash_seen", "1"); } catch {}
-    if (seen) setSplash("done");
+    // Visitors from an ad skip the logo: they already saw the promise, show it right away.
+    let fromAd = false;
+    try { fromAd = /[?&](utm_source|fbclid)=/.test(window.location.search); } catch {}
+    if (fromAd) track("ad_landing");
+    if (seen || fromAd) setSplash("done");
     else {
       const t1 = setTimeout(() => setSplash("fading"), 1600);
       const t2 = setTimeout(() => setSplash("done"), 2000);
@@ -369,19 +375,26 @@ export default function GoEatApp() {
     ];
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true, strictBudget,
-          previousPlanMeals: (result?.mealPlan || readJSON<any>(KEYS.lastResult, null)?.mealPlan || []).flatMap((d: any) => (d.meals || []).map((m: any) => m.name)) })
-      });
+      const body = JSON.stringify({ family, budget: eff, store, diet: diets.length ? diets.join(" + ") : "No Restriction", cuisine: cuisines.length ? cuisines.join(" + ") : "Any Cuisine", country, ingredients: scannedItems, familyProfiles, pinnedMeals: weekPicks, includeMeals, mealsOnly: true, strictBudget,
+          previousPlanMeals: (result?.mealPlan || readJSON<any>(KEYS.lastResult, null)?.mealPlan || []).flatMap((d: any) => (d.meals || []).map((m: any) => m.name)) });
+      const attempt = async () => {
+        const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+        if (!res.ok) throw new Error("API failed");
+        const d = await res.json();
+        if (d.error || !Array.isArray(d.mealPlan) || d.mealPlan.length === 0) throw new Error(d.error || "No plan");
+        return d;
+      };
+      let data: any;
+      try {
+        data = await attempt();
+      } catch {
+        // One quiet retry before showing an error (busy network or API).
+        track("plan_generate_retried");
+        data = await attempt();
+      }
 
       steps.forEach(clearTimeout);
       setLoadStep(4);
-
-      if (!res.ok) throw new Error("API failed");
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
 
       const finalResult = { ...data, family, budget: eff, store, diet: diets.join(" + ") || "No Restriction", cuisine: cuisines.join(" + ") || "Any Cuisine", country, sym, scannedCount: scannedItems.length, ingredients: scannedItems, pickedCount: weekPicks.length + includeMeals.length };
       setResult(finalResult);
@@ -406,7 +419,7 @@ export default function GoEatApp() {
       setTimeout(() => { setScreen("results"); setView("week"); }, 300);
     } catch {
       steps.forEach(clearTimeout);
-      setError("Failed to generate meal plan. Please try again.");
+      setError("We couldn't build your plan just now. Your picks are saved. Please try again.");
       setScreen("setup");
       track("plan_generate_failed");
     }
@@ -1219,6 +1232,34 @@ export default function GoEatApp() {
           {/* Main actions: plan, fridge scan, receipt scan */}
           <input ref={fridgeRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "fridge"); e.target.value = ""; }} />
           <input ref={receiptRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleScan(f, "receipt"); e.target.value = ""; }} />
+          {isNewVisitor ? (
+            <div style={{ margin: "2px 12px 12px", padding: "18px 16px 14px", borderRadius: 22, background: "linear-gradient(160deg,#FFF1E6 0%,#FDF9F3 70%)", border: "1px solid #F8E3D1" }}>
+              <h1 style={{ margin: 0, fontFamily: "'Nunito', sans-serif", fontWeight: 900, fontSize: 31, lineHeight: 1.05, letterSpacing: -0.5, color: "#16361F" }}>
+                What&apos;s for dinner <span style={{ color: "#F97316", display: "block" }}>this week?</span>
+              </h1>
+              <p style={{ margin: "8px 0 14px", fontSize: 15.5, lineHeight: 1.4, color: "#3d4a40", fontWeight: 600 }}>
+                Tap the dishes you love. We&apos;ll plan 7 days and build your grocery list.
+              </p>
+              <button onClick={() => openSample("hero")}
+                style={{ width: "100%", minHeight: 54, borderRadius: 99, border: "none", background: "linear-gradient(135deg,#F97316,#E8620A)", color: "white", fontWeight: 900, fontSize: 17, cursor: "pointer", boxShadow: "0 6px 16px rgba(232,98,10,0.3)", fontFamily: "'Nunito', sans-serif" }}>
+                👀 See a sample week
+              </button>
+              <button onClick={() => { track("hero_pick_dishes"); document.getElementById("feed-start")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                style={{ width: "100%", minHeight: 50, marginTop: 8, borderRadius: 99, border: "2px solid #1A5C2E", background: "white", color: "#1A5C2E", fontWeight: 900, fontSize: 16, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                Pick dishes I like ↓
+              </button>
+              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap" as const, gap: "4px 12px", marginTop: 10, fontSize: 12.5, color: "#4A6B50", fontWeight: 700 }}>
+                <span>✓ Free</span><span>✓ No sign-up</span><span>✓ Your plans stay on this device</span>
+              </div>
+              <div style={{ textAlign: "center", marginTop: 6 }}>
+                <button onClick={() => { track("scan_clicked", { from: "hero" }); fridgeRef.current?.click(); }}
+                  style={{ minHeight: 36, border: "none", background: "none", color: "#555", fontSize: 13, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
+                  📸 Or scan your fridge
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
           <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 8, padding: "2px 12px 12px" }}>
             {[
               { key: "plan", icon: "🗓", label: "Plan my week", sub: "7 days + groceries", bg: "linear-gradient(150deg,#F97316,#E8620A)", fg: "white", subFg: "rgba(255,255,255,0.9)",
@@ -1238,9 +1279,6 @@ export default function GoEatApp() {
               </button>
             ))}
           </div>
-          <div style={{ padding: "0 14px 8px", fontSize: 13.5, color: "#555", fontWeight: 600 }}>
-            Tap <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: "#F97316", color: "white", fontWeight: 900, fontSize: 13 }}>＋</span> on dishes you like. We&apos;ll plan the rest.
-          </div>
           <div style={{ padding: "0 12px 10px" }}>
             <button onClick={() => openSample("home")}
               style={{ width: "100%", minHeight: 46, borderRadius: 14, border: "1.5px dashed #F5B98A", background: "#FFF8F2", color: "#B4400A", fontWeight: 800, fontSize: 14.5, cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>
@@ -1251,8 +1289,13 @@ export default function GoEatApp() {
             </div>
           </div>
 
+            </>
+          )}
+          <div style={{ padding: "0 14px 8px", fontSize: 13.5, color: "#555", fontWeight: 600 }}>
+            Tap <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: "#F97316", color: "white", fontWeight: 900, fontSize: 13 }}>＋</span> on dishes you like. We&apos;ll plan the rest.
+          </div>
           {/* Category chips with photos */}
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 12px 10px", scrollbarWidth: "none" as const }}>
+          <div id="feed-start" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 12px 10px", scrollbarWidth: "none" as const, scrollMarginTop: 70 }}>
             {FEED_FILTERS.map(f => {
               const on = feedFilter === f.id;
               return (
