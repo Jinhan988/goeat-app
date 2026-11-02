@@ -100,31 +100,49 @@ Return ONLY valid JSON (no markdown, no explanation):
 
 Be THOROUGH. Be SPECIFIC. Scan every visible area.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 2000,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
-            { type: "text", text: prompt }
-          ]
-        }]
-      })
-    });
+    if (typeof image !== "string" || image.length < 100) {
+      return NextResponse.json({ error: "No image" }, { status: 400 });
+    }
+    const okTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const type = okTypes.includes(mediaType) ? mediaType : "image/jpeg";
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || "{}";
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    const result = JSON.parse(text.slice(start, end + 1));
+    const once = async () => {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 2000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: type, data: image } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(`API ${response.status} (${data.error?.message || "unknown"})`);
+      const text: string = data.content?.[0]?.text || "";
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("No JSON returned");
+      return JSON.parse(text.slice(start, end + 1));
+    };
+
+    let result: { confirmed?: string[]; uncertain?: string[] };
+    try {
+      result = await once();
+    } catch (e) {
+      console.error("Scan failed, retrying once:", e);
+      await new Promise(r => setTimeout(r, 700));
+      result = await once();
+    }
 
     return NextResponse.json({
       items: result.confirmed || [],

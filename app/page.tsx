@@ -294,42 +294,77 @@ export default function GoEatApp() {
     setShowManual(true);
     track("scan_started", { mode });
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      setScanImage(dataUrl);
-      const base64 = dataUrl.split(",")[1];
-      const mediaType = file.type || "image/jpeg";
+    // Phone photos are often 3-8 MB, over the upload limit. Shrink to ~1600px JPEG
+    // first (also turns HEIC and other formats into something the AI can read).
+    const readOriginal = () => new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = e => resolve(e.target?.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    const shrink = () => new Promise<string>((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX = 1600;
+          const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("no canvas");
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        } catch (err) { reject(err); } finally { URL.revokeObjectURL(url); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("decode failed")); };
+      img.src = url;
+    });
 
-      try {
-        const res = await fetch("/api/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64, mediaType, mode })
-        });
-        if (!res.ok) throw new Error("scan failed");
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        setScannedItems(data.items || []);
-        setUncertainItems(data.uncertain || []);
-        if (!data.items?.length && !data.uncertain?.length) {
-          setScanError("We couldn't spot any food in that photo. Try a clearer photo, or set up your plan manually.");
-        }
-        track("scan_completed", {
-          mode,
-          confirmedCount: data.items?.length || 0,
-          uncertainCount: data.uncertain?.length || 0,
-        });
-      } catch {
-        // Never show made-up ingredients when the scan fails.
-        setScannedItems([]);
-        setUncertainItems([]);
-        setScanError("We couldn't read that photo. Try again, or set up your plan manually.");
-        track("scan_failed", { mode });
-      }
+    let dataUrl = "";
+    try { dataUrl = await shrink(); } catch { try { dataUrl = await readOriginal(); } catch { dataUrl = ""; } }
+    if (!dataUrl) {
+      setScanError("We couldn't open that photo. Try another one, or set up your plan manually.");
       setScanLoading(false);
-    };
-    reader.readAsDataURL(file);
+      track("scan_failed", { mode, reason: "read" });
+      return;
+    }
+    setScanImage(dataUrl);
+    const base64 = dataUrl.split(",")[1];
+    const mediaType = (dataUrl.match(/^data:([^;]+);/) || [])[1] || "image/jpeg";
+    track("scan_image_ready", { mode, kb: Math.round(base64.length * 0.75 / 1024) });
+
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mediaType, mode })
+      });
+      if (!res.ok) throw new Error("scan failed " + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setScannedItems(data.items || []);
+      setUncertainItems(data.uncertain || []);
+      if (!data.items?.length && !data.uncertain?.length) {
+        setScanError(mode === "receipt"
+          ? "We couldn't read food items on that receipt. Try a flat, well-lit photo, or set up your plan manually."
+          : "We couldn't spot any food in that photo. Try a clearer photo, or set up your plan manually.");
+      }
+      track("scan_completed", {
+        mode,
+        confirmedCount: data.items?.length || 0,
+        uncertainCount: data.uncertain?.length || 0,
+      });
+    } catch (err) {
+      // Never show made-up ingredients when the scan fails.
+      setScannedItems([]);
+      setUncertainItems([]);
+      setScanError("We couldn't read that photo. Try again, or set up your plan manually.");
+      track("scan_failed", { mode, reason: String((err as Error)?.message || "").slice(0, 40) });
+    }
+    setScanLoading(false);
   }
 
   function startEditItem(i: number, currentValue: string) {
