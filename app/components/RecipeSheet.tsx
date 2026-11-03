@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { MealType } from "../lib/feed";
 import { DAYS, MEAL_TYPES } from "../lib/storage";
+import { ingredientPhoto, stepTimerSeconds } from "../lib/ingredients";
 
 export type RecipeData = {
   prepTime?: string;
@@ -39,6 +40,7 @@ type Props = {
   onAddToWeek: (day: string, type: MealType) => void;
   onAddIngredients: () => void;
   onClose: () => void;
+  onStep?: (step: number, total: number) => void; // analytics: cook mode progress
 };
 
 const font = "'Nunito', sans-serif";
@@ -49,6 +51,17 @@ export default function RecipeSheet(p: Props) {
   const [day, setDay] = useState(DAYS[0]);
   const [type, setType] = useState<MealType>(dish.meal || "Dinner");
   const [added, setAdded] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [allSteps, setAllSteps] = useState(false);
+  const [timer, setTimer] = useState<{ left: number; running: boolean } | null>(null);
+  useEffect(() => { setTimer(null); if (step > 0) p.onStep?.(step + 1, p.data?.steps?.length || 0); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
+  useEffect(() => {
+    if (!timer?.running) return;
+    if (timer.left <= 0) { try { navigator.vibrate?.([300, 150, 300]); } catch {} setTimer({ left: 0, running: false }); return; }
+    const t = setTimeout(() => setTimer(x => (x ? { ...x, left: x.left - 1 } : x)), 1000);
+    return () => clearTimeout(t);
+  }, [timer]);
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   // Keep the page behind the sheet from scrolling (on iPhone that scroll can
   // move the browser bars and push the top of the sheet off screen).
@@ -173,24 +186,88 @@ export default function RecipeSheet(p: Props) {
                   </button>
                 )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-                {data.ingredients?.map((ing, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 14px", background: "#F7FBF7", borderRadius: 12, fontSize: 14 }}>
-                    <span style={{ fontWeight: 600 }}>{ing.name}</span>
-                    <span style={{ fontWeight: 700, color: "#E8620A", textAlign: "right" }}>{ing.qty}</span>
-                  </div>
-                ))}
-              </div>
+              {(() => {
+                const ings = data.ingredients || [];
+                const withPic = ings.map(ing => ({ ...ing, pic: ingredientPhoto(ing.name) }));
+                const shown = withPic.filter(x => x.pic);
+                const rest = withPic.filter(x => !x.pic);
+                return (
+                  <>
+                    {shown.length > 0 && (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
+                        {shown.map((ing, i) => (
+                          <div key={i} style={{ background: "white", border: "1px solid #EFEAE0", borderRadius: 16, padding: "6px 6px 8px", textAlign: "center" as const }}>
+                            <img src={ing.pic} alt="" loading="lazy" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "contain", display: "block" }} />
+                            <div style={{ fontWeight: 900, fontSize: 13.5, color: "#E8620A", marginTop: 2, lineHeight: 1.2 }}>{ing.qty}</div>
+                            <div style={{ fontWeight: 700, fontSize: 12.5, color: "#333", lineHeight: 1.25 }}>{ing.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {rest.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 20 }}>
+                        {rest.map((ing, i) => (
+                          <span key={i} style={{ display: "inline-flex", gap: 6, alignItems: "baseline", padding: "8px 12px", background: "#F7F4EE", borderRadius: 99, fontSize: 13.5 }}>
+                            <span style={{ fontWeight: 700, color: "#333" }}>{ing.name}</span>
+                            {ing.qty && <span style={{ fontWeight: 800, color: "#E8620A" }}>{ing.qty}</span>}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {rest.length === 0 && <div style={{ height: 10 }} />}
+                  </>
+                );
+              })()}
 
-              <h3 style={{ margin: "0 0 10px", fontWeight: 800, fontSize: 16, color: "#1A5C2E", fontFamily: font }}>How to cook</h3>
-              <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
-                {data.steps?.map((step, i) => (
-                  <li key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#2E7D32", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>{i + 1}</span>
-                    <span style={{ fontSize: 14, color: "#444", lineHeight: 1.6 }}>{step}</span>
-                  </li>
-                ))}
-              </ol>
+              {(() => {
+                const steps = data.steps || [];
+                if (!steps.length) return null;
+                const i = Math.min(step, steps.length - 1);
+                const secs = stepTimerSeconds(steps[i]);
+                return (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 10px" }}>
+                      <h3 style={{ margin: 0, fontWeight: 800, fontSize: 16, color: "#1A5C2E", fontFamily: font }}>How to cook</h3>
+                      <button onClick={() => setAllSteps(v => !v)}
+                        style={{ minHeight: 36, padding: "0 10px", border: "none", background: "none", color: "#1A5C2E", fontWeight: 800, fontSize: 13, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer", fontFamily: font }}>
+                        {allSteps ? "Step by step" : "Show all steps"}
+                      </button>
+                    </div>
+                    {allSteps ? (
+                      <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
+                        {steps.map((st, k) => (
+                          <li key={k} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                            <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#2E7D32", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>{k + 1}</span>
+                            <span style={{ fontSize: 14, color: "#444", lineHeight: 1.6 }}>{st}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <div aria-live="polite" style={{ background: "#FBF7F0", border: "1px solid #EFE6D6", borderRadius: 20, padding: "14px 16px" }}>
+                        <div style={{ display: "flex", gap: 4, marginBottom: 12 }} aria-hidden="true">
+                          {steps.map((_, k) => <div key={k} style={{ flex: 1, height: 5, borderRadius: 99, background: k <= i ? "#F97316" : "#E9DFCF" }} />)}
+                        </div>
+                        <div style={{ fontSize: 12.5, fontWeight: 900, color: "#E8620A", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>Step {i + 1} of {steps.length}</div>
+                        <div style={{ fontSize: 19, fontWeight: 700, color: "#1E2B22", lineHeight: 1.45, marginTop: 6, minHeight: 84 }}>{steps[i]}</div>
+                        {secs && (
+                          <button onClick={() => setTimer(t => t && t.left > 0 ? { ...t, running: !t.running } : { left: secs, running: true })}
+                            style={{ marginTop: 10, minHeight: 44, padding: "0 16px", borderRadius: 99, border: "none", background: timer && timer.left === 0 ? "#C62828" : "#1A5C2E", color: "white", fontWeight: 900, fontSize: 15, cursor: "pointer", fontFamily: font }}>
+                            {!timer ? `⏱ Start ${mmss(secs)} timer` : timer.left === 0 ? "⏰ Time's up" : timer.running ? `⏸ ${mmss(timer.left)}` : `▶ ${mmss(timer.left)}`}
+                          </button>
+                        )}
+                        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                          <button onClick={() => setStep(Math.max(0, i - 1))} disabled={i === 0}
+                            style={{ flex: 1, minHeight: 48, borderRadius: 99, border: "1.5px solid #D8CDBB", background: "white", color: i === 0 ? "#BBB" : "#333", fontWeight: 800, fontSize: 15, cursor: i === 0 ? "default" : "pointer", fontFamily: font }}>← Back</button>
+                          <button onClick={() => setStep(Math.min(steps.length - 1, i + 1))} disabled={i === steps.length - 1}
+                            style={{ flex: 2, minHeight: 48, borderRadius: 99, border: "none", background: i === steps.length - 1 ? "#E8F5E9" : "linear-gradient(135deg,#F97316,#E8620A)", color: i === steps.length - 1 ? "#1A5C2E" : "white", fontWeight: 900, fontSize: 15, cursor: i === steps.length - 1 ? "default" : "pointer", fontFamily: font }}>
+                            {i === steps.length - 1 ? "✓ Last step" : "Next step →"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {data.tip && (
                 <div style={{ marginTop: 16, background: "#F0FBF2", border: "1.5px solid #A5D6A7", borderRadius: 16, padding: "12px 14px", fontSize: 14, color: "#1A5C2E", lineHeight: 1.5 }}>

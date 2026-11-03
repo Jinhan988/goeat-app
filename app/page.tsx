@@ -1184,6 +1184,7 @@ export default function GoEatApp() {
           onAddToWeek={(day, type) => addToWeek(sheet.name, day, type, sheet.source)}
           onAddIngredients={() => addIngredientsToList(sheet.name)}
           onClose={() => setSheet(null)}
+          onStep={(n, total) => track("cook_step_viewed", { recipe: sheet.name, step: n, total })}
         />
       )}
 
