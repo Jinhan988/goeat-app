@@ -177,7 +177,7 @@ export default function GoEatApp() {
       } catch {}
     }
     setSettingsReady(true);
-    try { localStorage.removeItem("goeatai_recipes"); } catch {} // old cache (could hold non-English recipes)
+    try { localStorage.removeItem("goeatai_recipes"); localStorage.removeItem("goeatai_recipes_v2"); } catch {} // old caches (v1 non-English, v2 long steps)
     setSavedRecipes(readJSON<SavedRecipe[]>(KEYS.savedRecipes, []));
     setWeekPicks(readJSON<WeekPick[]>(KEYS.weekPicks, []));
     setExtraItems(readJSON<ExtraItem[]>(KEYS.extraItems, []));
@@ -478,7 +478,7 @@ export default function GoEatApp() {
     if (local[name]) { setRecipeCache(p => ({ ...p, [name]: local[name] })); return; }
     setRecipeStatus(p => ({ ...p, [name]: "loading" }));
     try {
-      const res = await fetch(`/api/recipe?name=${encodeURIComponent(name)}&v=2`);
+      const res = await fetch(`/api/recipe?name=${encodeURIComponent(name)}&v=3`);
       const data = res.ok ? await res.json() : null;
       if (!data?.recipe) throw new Error("no recipe");
       setRecipeCache(p => ({ ...p, [name]: data.recipe }));

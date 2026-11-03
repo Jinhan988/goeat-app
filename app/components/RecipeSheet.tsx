@@ -177,6 +177,26 @@ export default function RecipeSheet(p: Props) {
             </div>
           ) : (
             <div style={{ marginTop: 20 }}>
+              {(() => {
+                // At a glance: the first three pictured ingredients = the dish.
+                const top = (data.ingredients || []).map(i => ({ name: i.name, pic: ingredientPhoto(i.name) })).filter(i => i.pic).slice(0, 3);
+                if (top.length < 2) return null;
+                return (
+                  <div aria-label={`${top.map(t => t.name).join(" plus ")} makes ${dish.name}`} role="img"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, background: "#FBF7F0", borderRadius: 20, padding: "10px 8px", marginBottom: 18 }}>
+                    {top.map((t, k) => (
+                      <div key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        {k > 0 && <span aria-hidden="true" style={{ fontWeight: 900, fontSize: 22, color: "#C2AE93" }}>+</span>}
+                        <img src={t.pic} alt="" style={{ width: 64, height: 64, objectFit: "contain", background: "white", borderRadius: 14 }} />
+                      </div>
+                    ))}
+                    <span aria-hidden="true" style={{ fontWeight: 900, fontSize: 22, color: "#C2AE93", margin: "0 2px" }}>=</span>
+                    {p.photo
+                      ? <img src={p.photo} alt="" style={{ width: 76, height: 76, objectFit: "cover", borderRadius: 16, border: "3px solid white", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} />
+                      : <span style={{ fontWeight: 900, fontSize: 13, color: "#1A5C2E", maxWidth: 80, lineHeight: 1.2 }}>{dish.name}</span>}
+                  </div>
+                );
+              })()}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <h3 style={{ margin: 0, fontWeight: 800, fontSize: 16, color: "#1A5C2E", fontFamily: font }}>Ingredients</h3>
                 {(data.ingredients?.length ?? 0) > 0 && (

@@ -26,7 +26,13 @@ STEPS:
 2. Short clear step.
 TIP: One tip that makes it better.
 
-Rules: 6-12 ingredients, 5-8 short steps. CALORIES is a rough per-serving estimate.
+Rules: 6-12 ingredients, 5-8 steps. CALORIES is a rough per-serving estimate.
+INGREDIENTS: list the main ingredients first (main protein, then the starch, then the main vegetable), then the rest. Use plain grocery names ("Chicken breast", "Jasmine rice", "Broccoli"), not long descriptions.
+STEPS (people read them one at a time while cooking, so keep them easy):
+- One action per step, under 20 words.
+- When a step takes time, say how long ("for 10 minutes", "6-8 minutes").
+- Give the heat and a visible sign of doneness when it matters ("over medium heat", "until golden").
+- No sub-steps, no notes in brackets.
 LANGUAGE: Write EVERYTHING in English (ingredients, steps, tip), even when the dish comes from another country or its name is in another language. Use ingredient names a North American shopper would find at the store (e.g. "boneless chicken thighs", "soy sauce", "mirin"). If the name was typed in another language, figure out the dish and still answer in English.`;
 
   // Non-Latin scripts (Japanese, Chinese, Korean…) mean the model ignored the
