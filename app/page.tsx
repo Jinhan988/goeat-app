@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from "react";
 import { FEED, FEED_FILTERS, dishMatches, searchTerms, dishSearchScore, findFeedDish, feedPhotoUrl, feedPhotoCredit, feedVideoSrc, feedVideoPoster, type FeedDish, type MealType } from "./lib/feed";
 import FeedVideo from "./components/FeedVideo";
 import SampleWeek from "./components/SampleWeek";
+import CollectionSheet from "./components/CollectionSheet";
+import { findCollection } from "./lib/collections";
 import { dishIndex, type IndexDish } from "./lib/dishIndex";
 
 // Dishes with especially appetizing photos; two of them open the feed each visit.
@@ -98,6 +100,7 @@ export default function GoEatApp() {
   const [feedOrder, setFeedOrder] = useState<Record<string, number> | null>(null);
   const [settingsReady, setSettingsReady] = useState(false);
   const [showSample, setShowSample] = useState(false);
+  const [collectionId, setCollectionId] = useState<string | null>(null);
   const [trimming, setTrimming] = useState(false);
   const [trimError, setTrimError] = useState("");
   // Logo splash on entry (once per browser session). Home renders underneath,
@@ -131,6 +134,12 @@ export default function GoEatApp() {
     let fromAd = false;
     try { fromAd = /[?&](utm_source|fbclid)=/.test(window.location.search); } catch {}
     if (fromAd) track("ad_landing");
+    // ?c=protein-lunches opens that collection (links from posts and ads).
+    try {
+      const c = new URLSearchParams(window.location.search).get("c");
+      const col = findCollection(c);
+      if (col) { setCollectionId(col.id); track("collection_opened", { id: col.id, from: "link" }); }
+    } catch {}
     if (seen || fromAd) setSplash("done");
     else {
       const t1 = setTimeout(() => setSplash("fading"), 1600);
@@ -565,6 +574,47 @@ export default function GoEatApp() {
     }
   }
   const isPicked = (name: string) => weekPicks.some(p => p.name === name);
+
+  // Add several dishes at once (from a collection): fill open slots in order.
+  function addManyToWeek(names: string[], from: string) {
+    let picks = [...weekPicks];
+    const added: WeekPick[] = [];
+    for (const name of names) {
+      const f = findFeedDish(name);
+      if (!f || f.noPlan || picks.some(p => p.name === name)) continue;
+      const order: MealType[] = f.meal === "Breakfast" ? ["Breakfast", "Lunch", "Dinner"] : f.meal === "Lunch" ? ["Lunch", "Dinner", "Breakfast"] : ["Dinner", "Lunch", "Breakfast"];
+      let slot: WeekPick | null = null;
+      for (const type of order) {
+        const day = DAYS.find(dy => !picks.some(p => p.day === dy && p.type === type));
+        if (day) { slot = { name, day, type }; break; }
+      }
+      if (!slot) break;
+      picks = [...picks, slot];
+      added.push(slot);
+    }
+    if (!added.length) return;
+    setWeekPicks(picks);
+    writeJSON(KEYS.weekPicks, picks);
+    track("collection_add_many", { from, count: added.length });
+    if (result?.mealPlan) {
+      const plan = result.mealPlan.map((dd: any) => {
+        const mine = added.filter(a => a.day === dd.day);
+        if (!mine.length) return dd;
+        const meals = Array.isArray(dd.meals) ? [...dd.meals] : [];
+        for (const a of mine) {
+          const meal = { type: a.type, name: a.name, photoQuery: findFeedDish(a.name)?.query };
+          const idx = meals.findIndex((m: any) => m.type === a.type);
+          if (idx >= 0) meals[idx] = meal; else meals.push(meal);
+        }
+        return { ...dd, meals };
+      });
+      const next = { ...result, mealPlan: plan };
+      setResult(next);
+      setShoppingStale(true);
+      setShopError("");
+      persistResult(next, true);
+    }
+  }
 
   async function swapMeal(dayName: string, type: string, currentName: string) {
     if (!result?.mealPlan) return;
@@ -1098,6 +1148,22 @@ export default function GoEatApp() {
           onOpenDish={n => { const f = findFeedDish(n); if (f) openFeedDish(f, "sample"); }}
           onClose={() => { setShowSample(false); track("sample_week_closed"); }}
           track={track}
+        />
+      )}
+
+      {/* COLLECTION */}
+      {collectionId && findCollection(collectionId) && (
+        <CollectionSheet
+          collection={findCollection(collectionId)!}
+          photo={n => (mealPhotos[n] && !brokenPhotos[n] ? sizedPhoto(mealPhotos[n], 240) : undefined)}
+          minutes={n => findFeedDish(n)?.minutes}
+          isPicked={isPicked}
+          onToggle={n => { const f = findFeedDish(n); if (f) { quickAdd(f); track("collection_pick", { id: collectionId, recipe: n }); } }}
+          onAddMany={names => addManyToWeek(names, collectionId)}
+          onOpen={n => { const f = findFeedDish(n); if (f) openFeedDish(f, "feed"); }}
+          onSwitch={id => { setCollectionId(id); track("collection_opened", { id, from: "switch" }); }}
+          onBuild={() => { track("collection_build", { id: collectionId, picks: weekPicks.length }); setCollectionId(null); setView("week"); window.scrollTo(0, 0); }}
+          onClose={() => { track("collection_closed", { id: collectionId }); setCollectionId(null); }}
         />
       )}
 
